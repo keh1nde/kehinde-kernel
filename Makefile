@@ -26,11 +26,11 @@ TARGET   = kernel8.img
 ELF      = kernel8.elf
 
 # Collect all source files from the src/ directory
-ASM_SRC  = $(wildcard src/*.ASM)
-CXX_SRC  = $(wildcard src/*.cpp)
+ASM_SRC  = $(wildcard src/*.S)
+CXX_SRC  = $(wildcard src/*.cpp) $(wildcard src/*/*.cpp)
 
 # Convert source paths to object file paths in a build/ directory
-ASM_OBJ  = $(patsubst src/%.ASM, build/%.o, $(ASM_SRC))
+ASM_OBJ  = $(patsubst src/%.S, build/%.o, $(ASM_SRC))
 CXX_OBJ  = $(patsubst src/%.cpp, build/%.o, $(CXX_SRC))
 OBJ      = $(ASM_OBJ) $(CXX_OBJ)
 
@@ -53,6 +53,7 @@ build/%.o: src/%.S | build
 
 # Compile .cpp files
 build/%.o: src/%.cpp | build
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
 
 # Create build directory if it doesn't exist
