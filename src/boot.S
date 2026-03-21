@@ -1,6 +1,7 @@
 .section ".text.boot"
 
 .global _start
+.extern vector_table
 
 _start:
     // Read the CPU ID from MPIDR_EL1; only core 0 should continue
