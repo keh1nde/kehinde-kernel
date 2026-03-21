@@ -26,6 +26,10 @@ _start:
     cmp     x1, x2
     blo     1b
 
+    // Before starting the kernel, set location of interrupt table
+    ldr x0, =vector_table
+    msr VBAR_EL1, x0
+
     // Jump to the C++ kernel entry point
     bl      kernel_main
 
