@@ -30,6 +30,9 @@ _start:
     ldr x0, =vector_table
     msr VBAR_EL1, x0
 
+    // Then, unmask interrupts
+    msr DAIFClr, #2
+
     // Jump to the C++ kernel entry point
     bl      kernel_main
 
