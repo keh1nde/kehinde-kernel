@@ -3,3 +3,6 @@
 //
 
 #pragma once
+void handle_synchronous_interrupts();
+
+void handle_interrupts_requests();
