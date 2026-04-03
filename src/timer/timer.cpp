@@ -3,7 +3,11 @@
 //
 
 #include "timer.h"
+
+
 #include <stdint.h>
+
+#include "../../include/uart.h"
 
 static volatile uint64_t time;
 static volatile uint64_t freq;
@@ -25,4 +29,9 @@ uint64_t get_time() {
 
 uint64_t get_freq() {
 	return freq;
+}
+
+void print_time() {
+	uart_puts("\rUptime: ");
+	uart_put_uint(get_time());
 }
