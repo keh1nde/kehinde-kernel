@@ -26,7 +26,7 @@ TARGET   = kernel8.img
 ELF      = kernel8.elf
 
 # Collect all source files from the src/ directory
-ASM_SRC  = $(wildcard src/*.S)
+ASM_SRC  = $(wildcard src/*.S) $(wildcard src/*/*.S)
 CXX_SRC  = $(wildcard src/*.cpp) $(wildcard src/*/*.cpp)
 
 # Convert source paths to object file paths in a build/ directory
@@ -49,6 +49,7 @@ $(TARGET): $(ELF)
 
 # Assemble .S files
 build/%.o: src/%.S | build
+	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) -c $< -o $@
 
 # Compile .cpp files
@@ -66,6 +67,9 @@ build:
 # -display none: no graphical window (we only use serial)
 run: $(TARGET)
 	qemu-system-aarch64 -M raspi3b -kernel $(TARGET) -serial stdio -display none
+
+debug: $(TARGET)
+	qemu-system-aarch64 -M raspi3b -kernel $(TARGET) -serial stdio -display none -d int 2>qemu_log.txt
 
 clean:
 	rm -rf build $(ELF) $(TARGET)
