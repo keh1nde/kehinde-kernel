@@ -2,7 +2,13 @@
 // Created by Kehinde Adeoso on 4/1/26.
 //
 
-#ifndef RASPBERRY_PI_OPERATING_SYSTEM_TIMER_H
-#define RASPBERRY_PI_OPERATING_SYSTEM_TIMER_H
+#pragma once
+#include <stdint.h>
 
-#endif //RASPBERRY_PI_OPERATING_SYSTEM_TIMER_H
+void timer_init();
+
+void increment_time();
+
+uint64_t get_time();
+
+uint64_t get_freq();
