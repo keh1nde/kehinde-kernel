@@ -35,7 +35,7 @@ CXX_OBJ  = $(patsubst src/%.cpp, build/%.o, $(CXX_SRC))
 OBJ      = $(ASM_OBJ) $(CXX_OBJ)
 
 # --- Targets ---
-.PHONY: all run clean
+.PHONY: all run clean rebuild test test-debug
 
 all: $(TARGET)
 
@@ -73,3 +73,17 @@ debug: $(TARGET)
 
 clean:
 	rm -rf build $(ELF) $(TARGET)
+
+rebuild:
+	$(MAKE) clean
+	$(MAKE) all
+
+test:
+	$(MAKE) clean
+	$(MAKE) all
+	$(MAKE) run
+
+test-debug:
+	$(MAKE) clean
+	$(MAKE) all
+	$(MAKE) debug
