@@ -4,10 +4,13 @@
 
 #include "interrupts.h"
 
-#include <stdint-gcc.h>
+#include <stdint.h>
 
 #include "uart.h"
+#include "timer.h"
 #include <stdint.h>
+
+#include "../../include/timer.h"
 
 /**
  * handle_synchronous_interrupts: Calls ESR_EL1 to identify exception type
@@ -18,19 +21,25 @@ extern "C" void handle_synchronous_interrupts() {
 	uint64_t esr;
 	asm volatile("mrs %0, ESR_EL1" : "=r"(esr));
 
-	uart_puts("handle_synchronous_interrupts has been reached");
-	uart_puts(" code reached: ", (esr >> 26) & 0x3F);
-}
+	// (esr >> 26) & 0x3F
 
-/**
- * handle_interrupt_requests: Do something idk yet
- */
-extern "C" void handle_interrupt_requests() {
-	uart_puts("handle_interrupt_requests has been reached");
+	/*
+	 * Note the following EC Values (in bits [31:26]
+	 * 0x00 (d 0): unknown
+	 * 0x01 (d 1): Trapped WFI/WFE
+	 * 0x0E (d 14): Illegal execution state
+	 * 0x15 (d 21): SVC from AArch64 (aka syscall)
+	 * 0x20 (d 32): Instruction abort from lower EL
+	 * 0x24 (d 36): Data abort from lower EL
+	 * 0x25 (d 37): Data abort from same EL
+	 * 0x2C (d 44): Stack pointer alignment fault
+	 * 0x3C (d 60): BRK instruction (aka debug breakpoint)
+	 */
+
 }
 
 enum {
-	TIMER_BASE = 0x3E003000, // make sure to amend
+	TIMER_BASE = 0x3F003000, // make sure to amend
 
 	TIMER_CS = (TIMER_BASE + 0x0),
 	TIMER_CLO = (TIMER_BASE + 0x4),
@@ -41,7 +50,7 @@ enum {
 	TIMER_C2 = (TIMER_BASE + 0x14),
 	TIMER_C3 = (TIMER_BASE + 0x18),
 
-	IRQ_BASE = 0x3E00B000,
+	IRQ_BASE = 0x3F00B000,
 	IRQ_BASIC = (IRQ_BASE + 0x200),
 	IRQ_P1 = (IRQ_BASE + 0x204),
 	IRQ_P2 = (IRQ_BASE + 0x208),
@@ -53,10 +62,12 @@ enum {
 	IRQ_2DS = (IRQ_BASE + 0x220),
 	IRQ_BDS = (IRQ_BASE + 0x224),
 
+	IRQ_ARM_BASE = 0x40000000,
+
 
 };
 
-void interrupt_init() {
+extern "C" void interrupt_init() {
 	// Disable all
 	mmio_write(IRQ_1DS, 0xFFFFFFFF);
 	mmio_write(IRQ_2DS, 0xFFFFFFFF);
@@ -64,11 +75,27 @@ void interrupt_init() {
 
 	// Enable ARM Timer and UART0
 	mmio_write(IRQ_BEN, 1 << 0);
-	mmio_write(IRQ_EN2, 1 << 25);
+	// mmio_write(IRQ_EN2, 1 << 25);
 }
 
-void timer_init() {
-	uint64_t freq;
-	asm volatile("mrs %0, CNTFRQ_EL0" : "=r"(freq));
-	asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10));
+/**
+ * handle_interrupt_requests: Do something idk yet
+ */
+extern "C" void handle_interrupt_requests() {
+
+
+	uint64_t irq_pend_status;
+	irq_pend_status = mmio_read(IRQ_BASIC);
+
+	// Check the timer register
+	uint64_t freq = get_freq();
+	if (irq_pend_status & 1) {
+		uart_puts("handle_interrupt_requests has been reached \n");
+
+		// Complete timer operation.
+		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10)); // reload timer.
+		increment_time();
+
+	}
+
 }
