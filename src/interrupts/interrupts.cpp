@@ -90,11 +90,10 @@ extern "C" void handle_interrupt_requests() {
 	// Check the timer register
 	uint64_t freq = get_freq();
 	if (irq_pend_status & (1 << 1)) {
-		uart_puts("handle_interrupt_requests has been reached \n");
-
 		// Complete timer operation.
 		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10)); // reload timer
 		increment_time();
+		print_time();
 
 	}
 
