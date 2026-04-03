@@ -73,3 +73,51 @@ void uart_puts(const char* str)
 	for (size_t i = 0; str[i] != '\0'; i ++)
 		uart_putc(static_cast<unsigned char>(str[i]));
 }
+
+void print_helper(const uint64_t val) {
+	uart_putc(val < 10 ? '0' + val : 'A' + val - 10);
+}
+
+void uart_put_hex(uint64_t val) {
+	uint64_t value_buffer[20];
+	uint64_t counter = 0;
+
+	if (val == 0) {
+		uart_putc('0');
+		return;
+	}
+
+	for (size_t i = 0; val != 0; i++) {
+		value_buffer[i] = val % 16;
+		counter++;
+
+		val = val / 16;
+	}
+
+	uart_putc('0');
+	uart_putc('x');
+	for (size_t i = 0; i != counter; i++) {
+		print_helper(value_buffer[counter - 1 - i]);
+	}
+}
+
+void uart_put_uint(uint64_t val) {
+	uint64_t value_buffer[20];
+	uint64_t counter = 0;
+
+	if (val == 0) {
+		uart_putc('0');
+		return;
+	}
+
+	for (size_t i = 0; val != 0; i++) {
+		value_buffer[i] = val % 10;
+		counter++;
+
+		val = val / 10;
+	}
+
+	for (size_t i = 0; i != counter; i++) {
+		print_helper(value_buffer[counter - i - 1]);
+	}
+}
