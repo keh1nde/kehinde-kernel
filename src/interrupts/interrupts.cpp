@@ -63,10 +63,11 @@ enum {
 	IRQ_BDS = (IRQ_BASE + 0x224),
 
 	IRQ_ARM_BASE = 0x40000000,
-
+	IRQ_EN_C0 = 0x40000040,
+	IRQ_C0_SOURCE = 0x40000060,
 
 };
-
+// Core0 timer interrupt source is at 0x40000...60 on bit 1
 extern "C" void interrupt_init() {
 	// Disable all
 	mmio_write(IRQ_1DS, 0xFFFFFFFF);
@@ -76,24 +77,23 @@ extern "C" void interrupt_init() {
 	// Enable ARM Timer and UART0
 	mmio_write(IRQ_BEN, 1 << 0);
 	// mmio_write(IRQ_EN2, 1 << 25);
+	mmio_write(IRQ_EN_C0, (1 << 1));
 }
 
 /**
  * handle_interrupt_requests: Do something idk yet
  */
 extern "C" void handle_interrupt_requests() {
-
-
 	uint64_t irq_pend_status;
-	irq_pend_status = mmio_read(IRQ_BASIC);
+	irq_pend_status = mmio_read(IRQ_C0_SOURCE);
 
 	// Check the timer register
 	uint64_t freq = get_freq();
-	if (irq_pend_status & 1) {
+	if (irq_pend_status & (1 << 1)) {
 		uart_puts("handle_interrupt_requests has been reached \n");
 
 		// Complete timer operation.
-		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10)); // reload timer.
+		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10)); // reload timer
 		increment_time();
 
 	}
