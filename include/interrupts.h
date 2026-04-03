@@ -3,6 +3,9 @@
 //
 
 #pragma once
-void handle_synchronous_interrupts();
+#include <stdint.h>
+extern "C" void handle_synchronous_interrupts();
 
-void handle_interrupts_requests();
+extern "C" void handle_interrupt_requests();
+
+extern "C" void interrupt_init();
