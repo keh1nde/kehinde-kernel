@@ -2,7 +2,8 @@
 // Created by Kehinde Adeoso on 4/15/26.
 //
 
-#ifndef RASPBERRY_PI_OPERATING_SYSTEM_MMU_H
-#define RASPBERRY_PI_OPERATING_SYSTEM_MMU_H
+#pragma once
 
-#endif //RASPBERRY_PI_OPERATING_SYSTEM_MMU_H
+#include <cstdint.h>
+#include <stdint-gcc.h>
+
