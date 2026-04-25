@@ -107,3 +107,15 @@ uint64_t* _get_or_alloc_table(uint64_t* table, const uint64_t index) {
 	}
 	uint64_t* child = reinterpret_cast<uint64_t*>(alloc_frame());
 	if (!child) return nullptr; // out of memory
+
+	for (int i = 0; i < 512; i++) {
+		child[i] = 0;
+	}
+
+	table[index] = reinterpret_cast<uint64_t>(child) | 0b11;
+	return child;
+}
+
+uint64_t extractBits(const unsigned int num, const int p, const int k) {
+	return (num >> p) & ((1 << k) - 1);
+}
