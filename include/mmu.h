@@ -4,7 +4,7 @@
 
 #pragma once
 #include <stdint-gcc.h>
-#include <stdint>
+#include <stdint.h>
 
 
 /**
@@ -20,14 +20,12 @@ void mmu_init();
  * Walk and allocate via alloc_frame the L0 to L3 tables, and install a descriptor at the terminal level
  * Flags encode cacheablilty (Normal vs Device via MAIR index), permissions and access control.
  */
-void map(uint64_t va, uint64_t phys, uint64_t size, uint64_t flags);
+static void map(uint64_t va, uint64_t phys, uint64_t size, uint64_t flags);
 
 // Clear descriptor, invalidate TLB entry
-void unmap(uint64_t va, uint64_t size);
+static void unmap(uint64_t va, uint64_t size);
+
+static uint64_t* _get_or_alloc_table(uint64_t* table, uint64_t index);
 
 // Walks tables in software and returns physical addresses (or find faults)
 uint64_t translate(uint64_t virt);
-
-uint64_t* _get_or_alloc_table(uint64_t* table, uint64_t index);
-
-uint64_t extractBits(unsigned int num, int p, int k);
