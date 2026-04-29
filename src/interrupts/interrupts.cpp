@@ -15,28 +15,6 @@
 /**
  * handle_synchronous_interrupts: Calls ESR_EL1 to identify exception type
  */
-extern "C" void handle_synchronous_interrupts() {
-
-
-	uint64_t esr;
-	asm volatile("mrs %0, ESR_EL1" : "=r"(esr));
-
-	// (esr >> 26) & 0x3F
-
-	/*
-	 * Note the following EC Values (in bits [31:26]
-	 * 0x00 (d 0): unknown
-	 * 0x01 (d 1): Trapped WFI/WFE
-	 * 0x0E (d 14): Illegal execution state
-	 * 0x15 (d 21): SVC from AArch64 (aka syscall)
-	 * 0x20 (d 32): Instruction abort from lower EL
-	 * 0x24 (d 36): Data abort from lower EL
-	 * 0x25 (d 37): Data abort from same EL
-	 * 0x2C (d 44): Stack pointer alignment fault
-	 * 0x3C (d 60): BRK instruction (aka debug breakpoint)
-	 */
-
-}
 
 enum {
 	TIMER_BASE = 0x3F003000, // make sure to amend
