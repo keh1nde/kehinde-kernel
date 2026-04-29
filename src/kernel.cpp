@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "uart.h"
 #include "interrupts.h"
+#include "mmu.h"
 #include "pmm.h"
 #include "timer.h"
 
@@ -14,7 +15,7 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	uart_init();
 
 	uart_puts("Today is the ");
-	uart_put_uint(3);
+	uart_put_uint(29);
 	uart_puts(" of April. \n");
 
 	uint64_t el;
@@ -35,7 +36,28 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 
 	pmm_init();
 
-	// Testing mem_start at init.
+	// Testing the MMU:
+
+	// Initialize:
+	mmu_init();
+
+	uart_puts("MMU initialized. It's assumed that map() works properly, too.\n");
+
+
+	interrupt_init();
+	timer_init();
+
+	while (1) {
+		uart_putc(uart_getc());
+		uart_putc('\n');
+	}
+}
+
+
+/*
+ * page manager test code.
+ *
+ * // Testing mem_start at init.
 	uart_puts("Current phys_mem_start value: ");
 	uart_put_hex(phys_mem_start);
 	uart_puts("\n");
@@ -108,13 +130,4 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	uart_puts("Readback: ");
 	uart_put_hex(*p);
 	uart_puts("\n");
-
-
-	interrupt_init();
-	timer_init();
-
-	while (1) {
-		uart_putc(uart_getc());
-		uart_putc('\n');
-	}
-}
+ */
