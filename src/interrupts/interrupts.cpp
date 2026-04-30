@@ -68,7 +68,7 @@ extern "C" void handle_synchronous_interrupts() {
 			while (true) {}
 		case 0x21:
 			uart_puts("Instruction Abort from the same EL.\n");
-			uart_puts("There is likely no VA to PA mapping, or you did it wrong.");
+			uart_puts("There is likely no VA to PA mapping, or you did it wrong.\n");
 			uart_puts("FAR_EL1: ");
 			uart_put_hex(far);
 			uart_puts("\nDFSC: ");
@@ -85,7 +85,7 @@ extern "C" void handle_synchronous_interrupts() {
 			while (true) {}
 		case 0x25:
 			uart_puts("Data Abort from the same EL \n");
-			uart_puts("Kernel did a load/store to an unmapped or wrong-perm VA.");
+			uart_puts("Kernel did a load/store to an unmapped or wrong-perm VA.\n");
 			uart_puts("FAR_EL1: ");
 			uart_put_hex(far);
 			uart_puts("\nDFSC: ");
