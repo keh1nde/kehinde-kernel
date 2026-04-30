@@ -139,8 +139,8 @@ void map(const uint64_t va, const uint64_t phys, const uint64_t size, uint64_t f
 	asm volatile("dsb ishst" ::: "memory");
 
 	for (int i = 0; i < num_pages; i++) {
-		uint64_t current_va = reinterpret_cast<uint64_t>(va + i * PAGE_SIZE);
-		uint64_t current_phys = reinterpret_cast<uint64_t>(phys + i * PAGE_SIZE);
+		uint64_t current_va = va + i * PAGE_SIZE;
+		uint64_t current_phys = phys + i * PAGE_SIZE;
 
 		uint64_t L1_INDEX = (current_va >> 30) & 0x1FF;
 		uint64_t L2_INDEX = (current_va >> 21) & 0x1FF;
