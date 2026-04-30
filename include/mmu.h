@@ -26,12 +26,12 @@ void mmu_init();
  * Walk and allocate via alloc_frame the L0 to L3 tables, and install a descriptor at the terminal level
  * Flags encode cacheablilty (Normal vs Device via MAIR index), permissions and access control.
  */
-static void map(uint64_t va, uint64_t phys, uint64_t size, uint64_t flags);
+void map(uint64_t va, uint64_t phys, uint64_t size, uint64_t flags);
 
 // Clear descriptor, invalidate TLB entry
-static void unmap(uint64_t va, uint64_t size);
+void unmap(uint64_t va, uint64_t size);
 
-static uint64_t* _get_or_alloc_table(uint64_t* table, uint64_t index);
+uint64_t* _get_or_alloc_table(uint64_t* table, uint64_t index);
 
 // Walks tables in software and returns physical addresses (or find faults)
 uint64_t translate(uint64_t virt);
