@@ -61,10 +61,7 @@
 
 static uint64_t* l1_table;
 
-enum {
-	PTE_NORMAL_RW = 0x703,
-	PTE_DEVICE_RW = 0x707,
-};
+
 
 void mmu_init() {
 	// Set up the Memory Attribute Indirection Register: A dictionary of memory behaviors

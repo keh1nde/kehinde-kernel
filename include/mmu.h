@@ -7,6 +7,12 @@
 #include <stdint.h>
 
 
+enum {
+	PTE_NORMAL_RW = 0x703,
+	PTE_DEVICE_RW = 0x707,
+};
+
+
 /**
  * Configures MAIR_EL1, TCR_EL1, TTBR0_EL1, and TTBR1_EL1
  * Installs a top-level table
