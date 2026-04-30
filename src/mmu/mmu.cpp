@@ -187,10 +187,54 @@ uint64_t* _get_or_alloc_table(uint64_t* table, const uint64_t index) {
 	return child;
 }
 
-void unmap(uint64_t va, uint64_t size) {
+uint64_t translate(uint64_t virt) {
+	uint64_t L1_INDEX = (virt >> 30) & 0x1FF;
+	uint64_t L2_INDEX = (virt >> 21) & 0x1FF;
+	uint64_t L3_INDEX = (virt >> 12) & 0x1FF;
+	const uint64_t ADDR_MASK = 0x0000FFFFFFFFF000ULL;
 
+	uint64_t l1_desc = l1_table[L1_INDEX];
+	if ((l1_desc & 0b11) != 0b11) return ~0ULL;
+	uint64_t* l2_table = reinterpret_cast<uint64_t *>(l1_desc & ADDR_MASK);
+
+	uint64_t l2_desc = l2_table[L2_INDEX];
+	if ((l2_desc & 0b11) != 0b11) return ~0ULL;
+	uint64_t* l3_table = reinterpret_cast<uint64_t *>(l2_desc & ADDR_MASK);
+
+	uint64_t l3_desc = l3_table[L3_INDEX];
+	if ((l3_desc & 0b11) != 0b11) return ~0ULL;
+
+	return (l3_desc & ADDR_MASK) | (virt & 0xFFFULL);
 }
 
-void translate(uint64_t virt) {
+void unmap(uint64_t va, uint64_t size) {
+	uint64_t num_pages = size / PAGE_SIZE;
+	asm volatile("dsb ishst" ::: "memory");
 
+	for (int i = 0; i < num_pages; i++) {
+		uint64_t current_va = va + i * PAGE_SIZE;
+
+		uint64_t L1_INDEX = (current_va >> 30) & 0x1FF;
+		uint64_t L2_INDEX = (current_va >> 21) & 0x1FF;
+		uint64_t L3_INDEX = (current_va >> 12) & 0x1FF;
+		const uint64_t ADDR_MASK = 0x0000FFFFFFFFF000ULL;
+
+		uint64_t l1_desc = l1_table[L1_INDEX];
+		if ((l1_desc & 0b11) != 0b11) return; // Implement error handling
+		uint64_t* l2_table = reinterpret_cast<uint64_t *>(l1_desc & ADDR_MASK);
+
+		uint64_t l2_desc = l2_table[L2_INDEX];
+		if ((l2_desc & 0b11) != 0b11) return; // Implement error handling
+		uint64_t* l3_table = reinterpret_cast<uint64_t *>(l2_desc & ADDR_MASK);
+
+		l3_table[L3_INDEX] = 0;
+	}
+
+	for (int i = 0; i < num_pages; i++) {
+		uint64_t va_page = (va + i * PAGE_SIZE) >> 12;
+		asm volatile("tlbi vaae1is, %0" :: "r"(va_page) : "memory");
+	}
+
+	asm volatile("dsb ish" ::: "memory");
+	asm volatile("isb" ::: "memory");
 }
