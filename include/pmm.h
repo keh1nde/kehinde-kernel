@@ -6,6 +6,7 @@
 #define RASPBERRY_PI_OPERATING_SYSTEM_PMM_H
 
 #include <stdint.h>
+#include <uart.h>
 
 
 constexpr uint64_t PAGE_SIZE = 4096;
