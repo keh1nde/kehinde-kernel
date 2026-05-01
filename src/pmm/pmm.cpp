@@ -2,7 +2,7 @@
 // Created by Kehinde Adeoso on 4/23/26.
 //
 
-#include "../../include/pmm.h"
+#include "pmm.h"
 
 uint64_t* bitmap;
 uint64_t phys_mem_start = 0;
@@ -47,6 +47,10 @@ void pmm_init() {
 }
 
 uint64_t alloc_frame() {
+#ifdef TRACE
+	static uint64_t count = 0;
+#endif
+
 	for (int i = 0; i < (total_frames + 63) / 64; ++i) {
 		if (bitmap[i] != ~0ULL) {
 			// Find the first 0 in the word (i.e. the first unallocated frame)
@@ -61,9 +65,18 @@ uint64_t alloc_frame() {
 			// Compute address
 			const uint64_t address = phys_mem_start + idx * PAGE_SIZE;
 
+#ifdef TRACE
+			count++;
+			uart_puts("alloc_frame #");
+			uart_put_uint(count);
+			uart_puts(" → ");
+			uart_put_hex(address);
+			uart_puts("\n");
+#endif
 			// Return the address
 			return address;
 		}
+
 	}
 	return 0; // Out of memory.
 }
