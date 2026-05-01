@@ -1,5 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
+
+#include "heap_alloc.h"
 #include "uart.h"
 #include "interrupts.h"
 #include "mmu.h"
@@ -34,42 +36,32 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 
 
 
-	pmm_init();
+	//pmm_init();
+	// uart_puts("Page Frame Allocator initialized.\n");
 
-	// Testing the MMU:
-
-	// Initialize:
 	mmu_init();
-	uart_puts("MMU initialized.\n");
+	uart_puts("Page Frame Allocator and MMU initialized.\n");
 
-	// Test un_map():
-	uint64_t frame_pa = alloc_frame();
-	uart_puts("Frame successfully allocated\n");
+	// Testing the heap allocator
+	kheap_init();
+	uart_puts("Heap allocator initialized.\n");
 
-	map(0x100000000, frame_pa, PAGE_SIZE, PTE_NORMAL_RW);
-	uart_puts("Mapping successful, the new physical address is the following: ");
-	uart_put_hex(translate(0x100000000));
-
-	uart_puts("\n");
-	uint64_t* p = reinterpret_cast<uint64_t*>(0x100000000);
-	*p = 0xDEADBEEFCAFEBABE;
-	uart_puts("Sentinel successfully written to allocated frame.\n");
-
-	uart_puts("Readback: ");
-	uart_put_hex(*p);
+	// Testing kmalloc
+	void* p = kmalloc(64);
+	uart_puts("kmalloc was called and returned the following address: ");
+	uart_put_hex(reinterpret_cast<uint64_t>(p));
 	uart_puts("\n");
 
-	unmap(0x100000000, PAGE_SIZE);
-	uart_puts("Address successfully unmapped. The translation should now read 0ULL: ");
-	uart_put_hex(translate(0x100000000));
-	uart_puts("\n");
+	// Testing if memory is usable
+	uint64_t* p1 = static_cast<uint64_t*>(kmalloc(64));
+	p1[0] = 0xDEADBEEFCAFEBABE;
+	p1[1] = 0x1234567890ABCDEF;
 
-	uart_puts("Readback (should fail): ");
-	uart_put_hex(*p);
-	uart_puts("\n");
-
-
-
+	if (p1[0] == 0xDEADBEEFCAFEBABE && p1[1] == 0x1234567890ABCDEF) {
+		uart_puts("kmalloc R/W ok\n");
+	} else {
+		uart_puts("kmalloc R/W fail\n");
+	}
 
 	interrupt_init();
 	timer_init();
