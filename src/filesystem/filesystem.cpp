@@ -22,7 +22,7 @@ void fs_init() {
 }
 
 uint64_t fs_lookup(const char* path) {
-	if (path[0] == '\0' || path[0] != '/') return INVALID_INO;
+	if (path[0] == '\0') return INVALID_INO;
 	// Parse out the path
 	uint64_t start = 1; // Starts at index 1
 	uint64_t ends[16];
