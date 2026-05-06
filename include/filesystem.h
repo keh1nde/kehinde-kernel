@@ -6,12 +6,16 @@
 #define RASPBERRY_PI_OPERATING_SYSTEM_FILESYSTEM_H
 #include <stdint-gcc.h>
 
+
 typedef struct block block_t;
+struct inode;
 
 constexpr uint64_t BLOCK_SIZE = 4096;
 constexpr uint64_t MAX_SIZE = 255;
 constexpr uint64_t INVALID_INO = 0;
 constexpr uint64_t ROOT_INO = 1;
+
+static inode* inode_list_head = nullptr;
 
 struct block {
 	block_t* next;
@@ -19,7 +23,7 @@ struct block {
 };
 
 struct inode {
-	uint64_t inode_id;
+	uint64_t ino;
 	uint8_t inode_type;
 	uint64_t inode_size;
 	block_t* first_block;
@@ -32,16 +36,16 @@ struct dirent {
 	// include static_assert(sizeof(dirent) == 264); in remaining implementation
 };
 
-// End constants, begin methods
+// End constants, begin main methods
 
 // Initializes the inode list, allocates inode 1 as the root directory.
 // Must be called after kheap_init.
-void fs_init(void);
+void fs_init();
 
 
 // Walks an absolute path ("/foo/bar/baz") from the root.
 // Returns the inode number, or INVALID_INO if any component doesn't exist.
-uint64_t fs_lookup(const char* name);
+uint64_t fs_lookup(const char* path);
 
 // Creates a new inode of `type` (1=file, 2=dir) inside the directory `parent_ino`,
 // with the given name. Returns the new inode number, or INVALID_INO on failure
@@ -73,5 +77,14 @@ int64_t fs_write(uint64_t ino, uint64_t offset, uint64_t len, void* buf);
 // Caller iterates: for (i = 0; fs_readdir(d, i, &ent) == 1; i++) { ... }
 int64_t  fs_readdir(uint64_t dir_ino, uint64_t index, dirent* out);
 
+// End main methods, begin helper methods
+
+bool name_matches(const char* path, uint64_t start, uint64_t end, const char* name);
+
+uint64_t parse_path(const char* path, uint64_t* ends, uint64_t max_segments);
+
+inode* find_inode(uint64_t ino);
+
+dirent* dirent_at(const inode *dir, uint64_t idx);
 
 #endif //RASPBERRY_PI_OPERATING_SYSTEM_FILESYSTEM_H
