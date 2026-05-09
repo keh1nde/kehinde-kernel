@@ -102,6 +102,7 @@ inode* find_inode(const uint64_t ino) {
 dirent* dirent_at(const inode *dir, const uint64_t idx) {
 	if (idx >= dir->inode_size) return nullptr; // idx out of bounds
 
+	// current max of 15 dirents per block. Impl is resilient to size changes.
 	const uint64_t dirents_per_block = sizeof(block::data) / sizeof(dirent);
 
 	const uint64_t block_index = idx / dirents_per_block;
