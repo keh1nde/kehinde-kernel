@@ -57,6 +57,13 @@ uint64_t fs_lookup(const char* path) {
 	return curr->ino;
 }
 
+uint64_t fs_create(uint64_t parent_ino, const char* name, uint8_t type) {
+
+}
+
+
+// ++++++ BEGIN HELPER FUNCTIONS ++++++
+
 bool name_matches(const char* path, const uint64_t start,
 	const uint64_t end, const char* name) {
 	for (uint64_t i = 0; i < end - start; i++) {
