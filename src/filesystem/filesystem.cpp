@@ -110,3 +110,19 @@ dirent* dirent_at(const inode *dir, const uint64_t idx) {
 
 	return &reinterpret_cast<dirent *>(curr_block->data)[slot];
 }
+
+void append_block(inode* inode) {
+	if (!inode->first_block) {
+		inode->first_block = static_cast<block *>(kmalloc(BLOCK_SIZE));
+		return;
+	}
+	block_t* curr_block = inode->first_block;
+	while (curr_block->next) {
+		curr_block = curr_block->next;
+	}
+	curr_block->next = static_cast<block *>(kmalloc(BLOCK_SIZE));
+}
+
+void name_copy(inode* dst, inode* src) {
+	
+}
