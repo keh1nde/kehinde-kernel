@@ -31,7 +31,7 @@ uint64_t fs_lookup(const char* path) {
 	if (n == 0) return ROOT_INO; // We only received the root directory "/"
 
 	// Now, traverse the path
-	inode* curr = find_inode(ROOT_INO);
+	const inode* curr = find_inode(ROOT_INO);
 	if (!curr) return INVALID_INO; // Could be that no inode was allocated yet.
 
 	// Do the following for each of the directories in the path:
