@@ -19,7 +19,7 @@ void *kmalloc(const uint64_t size) {
 #endif
 
 	const uint64_t aligned = (size + 15) & ~15ULL;
-	const uint64_t required_end = reinterpret_cast<uint64_t>(bump_ptr) + aligned;
+	const uint64_t required_end = bump_ptr + aligned;
 
 	if (required_end > HEAP_BASE + HEAP_MAX_SIZE) {
 		panic("Out of virtual memories, I guess???");
