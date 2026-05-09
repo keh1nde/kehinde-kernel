@@ -15,7 +15,7 @@ constexpr uint64_t MAX_SIZE = 255;
 constexpr uint64_t INVALID_INO = 0;
 constexpr uint64_t ROOT_INO = 1;
 
-static inode* inode_list_head = nullptr;
+inline inode* inode_list_head = nullptr; // TODO: Test that inode_list_head is captured by linker.ld.
 
 struct block {
 	block_t* next;
@@ -86,5 +86,9 @@ uint64_t parse_path(const char* path, uint64_t* ends, uint64_t max_segments);
 inode* find_inode(uint64_t ino);
 
 dirent* dirent_at(const inode *dir, uint64_t idx);
+
+void append_block(inode* inode);
+
+void name_copy(inode* dst, inode* src);
 
 #endif //RASPBERRY_PI_OPERATING_SYSTEM_FILESYSTEM_H
