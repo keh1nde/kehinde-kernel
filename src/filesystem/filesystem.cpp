@@ -291,10 +291,25 @@ bool name_matches(const char* path, const uint64_t start,
 	return name[end-start] == '\0';
 }
 
+bool name_matches_single(const char *name1, const char *name2) {
+	uint64_t i = 0;
+
+	if (__builtin_strlen(name1) != __builtin_strlen(name2)) return false; // Two different lengths
+
+	while (name1[i] != '\0' || name2[i] != '\0') {
+		if (name1[i] != name2[i]) return false; // If one character differs, the name isn't the same
+		i++;
+	}
+
+	return true; // If both hold true, then the names are the same.
+}
+
 uint64_t parse_path(const char* path, uint64_t* ends,
-										const uint64_t max_segments) {
+                    const uint64_t max_segments) {
 	uint64_t count = 0;
 	uint64_t i = 0;
+
+	if (__builtin_strlen(path) == 1 && path[0] == '/') return 0;
 
 	while (path[i] != '\0' && count < max_segments) {
 		// path[i] is '/'. Advance past it, then scan to the next '/' or end-of-string.
