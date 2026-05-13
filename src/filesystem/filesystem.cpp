@@ -364,6 +364,25 @@ void append_block(inode* inode) {
 	curr_block->next = static_cast<block *>(kmalloc(BLOCK_SIZE));
 }
 
-void name_copy(inode* dst, inode* src) {
-	
+bool name_copy(const char* path, uint64_t start, uint64_t end, const char* name) {
+	return false; // stub — unused
+}
+
+uint64_t min(const uint64_t a, const uint64_t b) {
+	return a < b ? a : b;
+}
+
+extern "C" {
+	uint64_t strlen(const char* s) {
+		uint64_t len = 0;
+		while (s[len]) len++;
+		return len;
+	}
+
+	void* memcpy(void* dst, const void* src, uint64_t n) {
+		uint8_t* d = static_cast<uint8_t*>(dst);
+		const uint8_t* s = static_cast<const uint8_t*>(src);
+		for (uint64_t i = 0; i < n; i++) d[i] = s[i];
+		return dst;
+	}
 }

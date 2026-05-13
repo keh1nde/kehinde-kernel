@@ -31,17 +31,8 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	fs_init();
 	uart_puts("fs_init done.\n");
 
-	if (p1[0] == 0xDEADBEEFCAFEBABE && p1[1] == 0x1234567890ABCDEF) {
-		uart_puts("kmalloc R/W ok\n");
-	} else {
-		uart_puts("kmalloc R/W fail\n");
-	}
-
+	// Timer omitted: timer IRQ prints "Uptime: N" and would disrupt the shell prompt.
 	interrupt_init();
-	timer_init();
 
-	while (1) {
-		uart_putc(uart_getc());
-
-	}
+	shell_run();
 }
