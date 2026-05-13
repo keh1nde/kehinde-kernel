@@ -234,6 +234,51 @@ int64_t fs_write(uint64_t ino, uint64_t offset, uint64_t len, void *buf) {
 		else return -1; // There are no blocks allocated, so there's nothing to read.
 	}
 
+	uint64_t bytes_written = 0;
+	uint64_t block_offset = byte_offset;
+
+	while (bytes_written < len) {
+		const uint64_t bytes_left_in_block = sizeof(block::data) - block_offset;
+		const uint64_t chunk = min(len - bytes_written, bytes_left_in_block);
+
+		for (int i = 0; i < chunk; i++) {
+			current_block->data[block_offset + i] = src[bytes_written + i];
+		}
+
+		bytes_written += chunk;
+		block_offset = 0;
+
+		current_block = current_block->next;
+	}
+
+	if (offset + len > subject->inode_size) {
+		subject->inode_size = offset+len;
+	}
+	return len;
+}
+
+int64_t fs_readdir(const uint64_t dir_ino, const uint64_t index, dirent *out) {
+	inode* subject = find_inode(dir_ino);
+	if (!subject) return -1;
+	if (subject->inode_type != 2) return -1;
+	if (!out) return -1;
+	if (index >= subject->inode_size) return 0;
+
+	dirent* subject_dirent = dirent_at(subject, index);
+	if (!subject_dirent) return -1;
+
+	*out = *subject_dirent;
+
+	return 1;
+}
+
+int fs_stat(const uint64_t ino, uint64_t* size_out, uint8_t* type_out) {
+	const inode* n = find_inode(ino);
+	if (!n) return -1;
+	if (size_out) *size_out = n->inode_size;
+	if (type_out) *type_out = n->inode_type;
+	return 0;
+}
 
 // ++++++ BEGIN HELPER FUNCTIONS ++++++
 
