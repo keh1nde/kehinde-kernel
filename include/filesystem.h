@@ -77,9 +77,14 @@ int64_t fs_write(uint64_t ino, uint64_t offset, uint64_t len, void* buf);
 // Caller iterates: for (i = 0; fs_readdir(d, i, &ent) == 1; i++) { ... }
 int64_t  fs_readdir(uint64_t dir_ino, uint64_t index, dirent* out);
 
+// Returns the size and type of an inode. Returns 0 on success, -1 if not found.
+int fs_stat(uint64_t ino, uint64_t* size_out, uint8_t* type_out);
+
 // End main methods, begin helper methods
 
 bool name_matches(const char* path, uint64_t start, uint64_t end, const char* name);
+
+bool name_matches_single(const char* name1, const char* name2);
 
 uint64_t parse_path(const char* path, uint64_t* ends, uint64_t max_segments);
 
@@ -89,6 +94,10 @@ dirent* dirent_at(const inode *dir, uint64_t idx);
 
 void append_block(inode* inode);
 
-void name_copy(inode* dst, inode* src);
+bool name_copy(inode* dst, inode* src);
+
+uint64_t min(uint64_t a, uint64_t b);
+
+
 
 #endif //RASPBERRY_PI_OPERATING_SYSTEM_FILESYSTEM_H
