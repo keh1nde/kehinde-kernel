@@ -191,7 +191,48 @@ int64_t fs_read(const uint64_t ino, const uint64_t offset, uint64_t len, void *b
 		bytes_copied += chunk;
 		block_offset = 0;
 
+		current_block = current_block->next;
+	}
+	return len;
+
 }
+
+int64_t fs_write(uint64_t ino, uint64_t offset, uint64_t len, void *buf) {
+	if (!buf) return -1;
+	const uint8_t* src = static_cast<uint8_t*>(buf);
+
+	inode* subject = find_inode(ino);
+	if (!subject) return -1;
+	if (subject->inode_type != 1) return -1;
+
+	const uint64_t block_index = offset / sizeof(block::data);
+	const uint64_t byte_offset = offset % sizeof(block::data);
+
+	uint64_t curr_inode_blocks = 0;
+
+	block_t* pointer = subject->first_block;
+	while (pointer) {
+		curr_inode_blocks++;
+		pointer = pointer->next;
+	}
+
+	uint64_t remaining_space = sizeof(block::data) * curr_inode_blocks;
+
+
+	if (offset + len > remaining_space) {
+		uint64_t added_blocks = 0;
+		while (offset + len > remaining_space) {
+			append_block(subject);
+			added_blocks++;
+			remaining_space = sizeof(block::data) * (curr_inode_blocks + added_blocks);
+		}
+	}
+	block_t* current_block = subject->first_block;
+
+	for (int i = 0; i < block_index; i++) {
+		if (current_block) current_block = current_block->next;
+		else return -1; // There are no blocks allocated, so there's nothing to read.
+	}
 
 
 // ++++++ BEGIN HELPER FUNCTIONS ++++++
