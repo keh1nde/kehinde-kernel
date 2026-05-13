@@ -7,6 +7,8 @@
 #include "mmu.h"
 #include "pmm.h"
 #include "timer.h"
+#include "filesystem.h"
+#include "shell.h"
 
 extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 {
