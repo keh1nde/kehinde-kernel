@@ -4,6 +4,9 @@ kernel8.img
 buiid/
 obj/
 
+# Local data
+docs/
+
 # Debug/runtime output
 qemu_log.txt
 *.log
@@ -15,7 +18,7 @@ qemu_log.txt
 .DS_Store
 
 *.map
-*.dump
+.dump
 *.lst
 
 #
