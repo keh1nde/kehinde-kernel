@@ -1,8 +1,39 @@
+// @file vector_table.S
+// @brief AArch64 exception vector table + register save/restore stubs.
+//
+// Part of kehinde-kernel: a bare-metal AArch64 operating system for the
+// Raspberry Pi 3 Model B (Cortex-A53).
+//
+// The AArch64 vector table is 16 entries laid out at 128-byte intervals,
+// the whole table 2 KiB aligned. Entries are grouped into four bands:
+//   - Current EL with SP_EL0  (we don't use this — bands self-loop)
+//   - Current EL with SP_ELx  (active; sync + IRQ wired up)
+//   - Lower EL using AArch64  (no userspace yet)
+//   - Lower EL using AArch32  (we never run AArch32)
+//
+// Each used entry branches to a small stub below that saves the general
+// register file plus ELR_EL1/SPSR_EL1 onto the kernel stack, calls into a
+// C++ handler with C linkage, restores the state, and ERETs back to the
+// faulting instruction (or the next one, depending on the exception class).
+//
+// Stack frame written by `save_registers`:
+//   [SP + 0x000 .. 0x0FF]  x0–x29 (30 GP regs, 240 bytes)
+//   [SP + 0x0F0 .. 0x0FF]  x30, xzr (LR + pad)
+//   [SP + 0x100 .. 0x10F]  ELR_EL1, SPSR_EL1
+//   Total: 272 bytes.
+//
+// References:
+//   - Arm Architecture Reference Manual for A-profile, §D1.10 (Vector tables)
+//
+// @author Kehinde Adeoso
+// SPDX-License-Identifier: MIT
+
 .section ".text"
 .balign 2048
 .global vector_table
 
 
+// Save x0–x30 plus ELR_EL1/SPSR_EL1 to a 272-byte stack frame.
 .macro save_registers
     sub SP, SP, #272
     stp x0, x1, [SP, #0]
@@ -26,6 +57,8 @@
     stp x0, x1, [SP, #256]
 .endm
 
+// Reverse of save_registers — restore ELR_EL1/SPSR_EL1 first so ERET sees
+// the right state, then unwind the general registers.
 .macro load_registers
     ldp x0, x1, [SP, #256]
     msr ELR_EL1, x0
@@ -50,11 +83,11 @@
 .endm
 
 
-// --- Vector table: 16 entries, on 128 byte boundaries. ---
+// ====== Vector table: 16 entries, 128-byte aligned. ======
 
 vector_table:
 
-// Current EL with SP0
+// Current EL with SP0 — unused; self-loop on entry.
 .balign 128
     b .                             // Synchronous
 .balign 128
@@ -64,7 +97,7 @@ vector_table:
 .balign 128
     b .                             // SError
 
-// Current EL with SPx
+// Current EL with SPx — the kernel runs here.
 .balign 128
     b sync_handler                  // Synchronous
 .balign 128
@@ -74,7 +107,7 @@ vector_table:
 .balign 128
     b .                             // SError
 
-// Lower EL using AArch64
+// Lower EL using AArch64 — no userspace yet.
 .balign 128
     b .                             // Synchronous
 .balign 128
@@ -84,7 +117,7 @@ vector_table:
 .balign 128
     b .                             // SError
 
-// Lower EL using AArch32
+// Lower EL using AArch32 — we never run AArch32.
 .balign 128
     b .                             // Synchronous
 .balign 128
@@ -95,7 +128,8 @@ vector_table:
     b .                             // SError
 
 
-// --- Handler bodies. Outside function and implemented to abide by 128-byte limit ---
+// ====== Handler bodies. Placed outside the table so each table slot
+//        stays under the 128-byte budget. ======
 
 sync_handler:
     save_registers

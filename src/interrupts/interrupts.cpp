@@ -1,6 +1,24 @@
-//
-// Created by Kehinde Adeoso on 3/20/26.
-//
+/**
+ * @file interrupts.cpp
+ * @brief Synchronous-exception decoder and IRQ controller bring-up.
+ *
+ * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
+ * Raspberry Pi 3 Model B (Cortex-A53).
+ *
+ * The vector table in `vector_table.S` calls into the two `extern "C"`
+ * entry points defined here. Synchronous exceptions are treated as fatal
+ * diagnostics: decode ESR_EL1 (EC, ISS, DFSC), dump FAR_EL1 / ELR_EL1,
+ * and halt. IRQs currently service the per-core ARM Generic Timer only;
+ * UART RX is wired on the device side but masked at the IRQ controller
+ * to avoid a storm (see CLAUDE.md known issues).
+ *
+ * References:
+ *   - Arm Architecture Reference Manual for A-profile, §D1 (Exception model)
+ *   - BCM2835 ARM Peripherals, §7 (Interrupts)
+ *
+ * @author Kehinde Adeoso
+ * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
+ */
 
 #include "interrupts.h"
 
@@ -8,16 +26,10 @@
 
 #include "uart.h"
 #include "timer.h"
-#include <stdint.h>
 
-#include "../../include/timer.h"
-
-/**
- * handle_synchronous_interrupts: Calls ESR_EL1 to identify exception type
- */
-
+/** Peripheral and IRQ-controller register addresses. */
 enum {
-	TIMER_BASE = 0x3F003000, // make sure to amend
+	TIMER_BASE = 0x3F003000,
 
 	TIMER_CS = (TIMER_BASE + 0x0),
 	TIMER_CLO = (TIMER_BASE + 0x4),
@@ -43,17 +55,18 @@ enum {
 	IRQ_ARM_BASE = 0x40000000,
 	IRQ_EN_C0 = 0x40000040,
 	IRQ_C0_SOURCE = 0x40000060,
-
 };
+
 extern "C" void handle_synchronous_interrupts() {
-
-
+	// Snapshot the exception-state registers up front so any subsequent
+	// UART activity does not perturb FAR_EL1 / ELR_EL1.
 	uint64_t esr, far, elr;
 	asm volatile("mrs %0, ESR_EL1" : "=r"(esr));
 	asm volatile("mrs %0, FAR_EL1" : "=r"(far));
-	asm volatile("mrs %0, ELR_EL1" : "=r"(elr)); // PC at faulting instruction
+	asm volatile("mrs %0, ELR_EL1" : "=r"(elr));
 
-
+	// Decode ESR_EL1: EC = exception class (bits [31:26]),
+	// ISS = instruction-specific syndrome, DFSC = data-fault status code.
 	uint64_t ec = (esr >> 26) & 0x3F;
 	uint64_t iss = esr & 0x1FFFFFF;
 	uint64_t dfsc = iss & 0x3F;
@@ -104,48 +117,44 @@ extern "C" void handle_synchronous_interrupts() {
 	}
 
 	/*
-	 * Note the following EC Values (in bits [31:26]
-	 * 0x00 (d 0): unknown
-	 * 0x01 (d 1): Trapped WFI/WFE
-	 * 0x0E (d 14): Illegal execution state
-	 * 0x15 (d 21): SVC from AArch64 (aka syscall)
-	 * 0x20 (d 32): Instruction abort from lower EL
-	 * 0x24 (d 36): Data abort from lower EL
-	 * 0x25 (d 37): Data abort from same EL
-	 * 0x2C (d 44): Stack pointer alignment fault
-	 * 0x3C (d 60): BRK instruction (aka debug breakpoint)
+	 * EC reference (bits [31:26] of ESR_EL1):
+	 *   0x00: unknown
+	 *   0x01: trapped WFI/WFE
+	 *   0x0E: illegal execution state
+	 *   0x15: SVC from AArch64 (syscall)
+	 *   0x20: instruction abort from lower EL
+	 *   0x21: instruction abort from same EL
+	 *   0x24: data abort from lower EL
+	 *   0x25: data abort from same EL
+	 *   0x2C: SP alignment fault
+	 *   0x3C: BRK instruction (debug breakpoint)
 	 */
-
 }
 
-// Core0 timer interrupt source is at 0x40000...60 on bit 1
 extern "C" void interrupt_init() {
-	// Disable all
+	// Mask every peripheral IRQ at the BCM2835 controller before enabling
+	// the specific lines the kernel wants. Cleaner than relying on reset
+	// state and avoids spurious IRQs during bring-up.
 	mmio_write(IRQ_1DS, 0xFFFFFFFF);
 	mmio_write(IRQ_2DS, 0xFFFFFFFF);
 	mmio_write(IRQ_BDS, 0xFFFFFFFF);
 
-	// Enable ARM Timer and UART0
+	// Enable ARM Timer (basic IRQ 0) on the BCM2835 side. UART RX (IRQ_EN2
+	// bit 25) is intentionally left masked — see CLAUDE.md known issues.
 	mmio_write(IRQ_BEN, 1 << 0);
-	// mmio_write(IRQ_EN2, 1 << 25);
-	mmio_write(IRQ_EN_C0, (1 << 1));
+	mmio_write(IRQ_EN_C0, (1 << 1)); // Per-core timer source on the ARM local block.
 }
 
-/**
- * handle_interrupt_requests: Do something idk yet
- */
 extern "C" void handle_interrupt_requests() {
 	uint64_t irq_pend_status;
 	irq_pend_status = mmio_read(IRQ_C0_SOURCE);
 
-	// Check the timer register
+	// Per-core timer IRQ: reload CNTP_TVAL_EL0 for the next tick, then
+	// advance and print the in-kernel clock.
 	uint64_t freq = get_freq();
 	if (irq_pend_status & (1 << 1)) {
-		// Complete timer operation.
-		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10)); // reload timer
+		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10));
 		increment_time();
 		print_time();
-
 	}
-
 }

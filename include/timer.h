@@ -1,16 +1,43 @@
-//
-// Created by Kehinde Adeoso on 4/1/26.
-//
+/**
+ * @file timer.h
+ * @brief ARM Generic Timer (CNTP, EL0 physical timer) — public API.
+ *
+ * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
+ * Raspberry Pi 3 Model B (Cortex-A53).
+ *
+ * Drives the per-core physical timer at a fixed 10 Hz tick. Tick count is
+ * incremented from inside the IRQ handler (see
+ * `src/interrupts/interrupts.cpp`). On the Pi 3, the timer IRQ is routed
+ * through the ARM local peripheral block at `0x40000000`, not through the
+ * legacy BCM2835 IRQ controller.
+ *
+ * References:
+ *   - Arm Architecture Reference Manual for A-profile, §D11 (Generic Timer)
+ *
+ * @author Kehinde Adeoso
+ * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
+ */
 
 #pragma once
 #include <stdint.h>
 
+/**
+ * @brief Latch the timer frequency, program the next compare value, enable CNTP.
+ *
+ * Reads `CNTFRQ_EL0` to discover the timer frequency, loads
+ * `freq / 10` into `CNTP_TVAL_EL0` (yielding ~10 Hz ticks), and enables the
+ * physical timer by setting `CNTP_CTL_EL0.ENABLE`.
+ */
 void timer_init();
 
+/** @brief Advance the in-kernel tick counter by one. Called from the IRQ. */
 void increment_time();
 
+/** @brief Return the current tick count (10 Hz, monotonic since boot). */
 uint64_t get_time();
 
+/** @brief Return the latched timer frequency (Hz). Set by #timer_init. */
 uint64_t get_freq();
 
+/** @brief Emit `"Uptime: <ticks>"` over UART, preceded by a carriage return. */
 void print_time();

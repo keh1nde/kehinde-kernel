@@ -1,15 +1,32 @@
-//
-// Created by Kehinde Adeoso on 4/1/26.
-//
+/**
+ * @file timer.cpp
+ * @brief ARM Generic Timer driver implementation (CNTP, EL0 physical timer).
+ *
+ * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
+ * Raspberry Pi 3 Model B (Cortex-A53).
+ *
+ * Programs the EL0 physical timer (CNTP) to fire roughly every 100 ms
+ * (10 Hz). The IRQ handler in `interrupts.cpp` reloads `CNTP_TVAL_EL0`
+ * after each tick, so the period is approximate — drift accumulates from
+ * the handler's own latency.
+ *
+ * References:
+ *   - Arm Architecture Reference Manual for A-profile, §D11 (Generic Timer)
+ *
+ * @author Kehinde Adeoso
+ * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
+ */
 
 #include "timer.h"
 
-
 #include <stdint.h>
 
-#include "../../include/uart.h"
+#include "uart.h"
 
+/** Tick counter; advanced by #increment_time from the IRQ. */
 static volatile uint64_t time;
+
+/** Latched timer frequency in Hz (read from CNTFRQ_EL0 at init). */
 static volatile uint64_t freq;
 
 void timer_init() {

@@ -1,34 +1,76 @@
+/**
+ * @file shell.cpp
+ * @brief Interactive UART shell sitting directly on the ramfs API.
+ *
+ * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
+ * Raspberry Pi 3 Model B (Cortex-A53).
+ *
+ * Read-parse-dispatch loop: print a prompt, read a line over UART, split
+ * on whitespace, look the verb up in a small static table of handlers.
+ * No fd table or open-handle layer — commands invoke `fs_*` functions
+ * directly with inode numbers.
+ *
+ * State is two file-static fields:
+ *   - `cwd_ino` — inode number of the current directory (used for FS ops).
+ *   - `cwd_path` — string form of the cwd (used for `pwd` display and
+ *     resolving relative paths).
+ *
+ * Limitations:
+ *   - `cd ..` is unsupported (inodes carry no parent pointer). Use an
+ *     absolute path to back out.
+ *   - `write` always starts at offset 0 (overwrite). No append mode.
+ *   - No quoting; arguments are split on plain spaces.
+ *
+ * @author Kehinde Adeoso
+ * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
+ */
+
 #include "shell.h"
 #include "filesystem.h"
 #include "uart.h"
 
+/** Maximum command line length, in bytes. */
 #define MAX_LINE 256
+
+/** Maximum number of argv slots after splitting on whitespace. */
 #define MAX_ARGS 16
+
+/** Maximum length of a path string the shell will construct internally. */
 #define MAX_PATH 512
 
+/** Inode of the current working directory. */
 static uint64_t cwd_ino = ROOT_INO;
+
+/** String form of the cwd. Updated by #cmd_cd. */
 static char cwd_path[MAX_PATH] = "/";
 
-// ---- String helpers (no libc) ----
+// ====== String helpers (no libc) ======
 
+/** @brief Length of null-terminated @p s. */
 static uint64_t slen(const char* s) {
     uint64_t n = 0;
     while (s[n]) n++;
     return n;
 }
 
+/** @brief Copy null-terminated @p src into @p dst including the terminator. */
 static void scpy(char* dst, const char* src) {
     uint64_t i = 0;
     while (src[i]) { dst[i] = src[i]; i++; }
     dst[i] = '\0';
 }
 
+/** @brief Equality test for two null-terminated strings. */
 static bool seq(const char* a, const char* b) {
     uint64_t i = 0;
     while (a[i] && b[i] && a[i] == b[i]) i++;
     return a[i] == b[i];
 }
 
+/**
+ * @brief Concatenate argv[@p start ..@p argc) into @p dst with single-space
+ *        separators. Used by `write` to allow multi-word values.
+ */
 static void join_args(char* dst, char** argv, int start, int argc) {
     uint64_t pos = 0;
     for (int i = start; i < argc; i++) {
@@ -40,8 +82,19 @@ static void join_args(char* dst, char** argv, int start, int argc) {
     dst[pos] = '\0';
 }
 
-// ---- I/O helpers ----
+// ====== I/O helpers ======
 
+/**
+ * @brief Read one line of UART input into @p buf, with local echo.
+ *
+ * Handles CR/LF (terminates the line), backspace/DEL (deletes one byte
+ * with `\b \b` redraw), and printable ASCII (≥ 32) only. Other control
+ * characters are silently discarded.
+ *
+ * @param buf Destination buffer.
+ * @param max Buffer capacity, including the null terminator.
+ * @return Number of bytes stored in @p buf (excluding terminator).
+ */
 static int read_line(char* buf, int max) {
     int i = 0;
     while (i < max - 1) {
@@ -64,6 +117,14 @@ static int read_line(char* buf, int max) {
     return i;
 }
 
+/**
+ * @brief In-place tokenize @p line on whitespace; populate @p argv.
+ *
+ * Overwrites each separator byte with `\0`. Caller's @p line must be
+ * writable.
+ *
+ * @return Number of tokens written (0 to @p max_argc).
+ */
 static int parse_args(char* line, char** argv, int max_argc) {
     int argc = 0;
     char* p = line;
@@ -77,8 +138,16 @@ static int parse_args(char* line, char** argv, int max_argc) {
     return argc;
 }
 
-// ---- Path resolution ----
+// ====== Path resolution ======
 
+/**
+ * @brief Resolve @p arg (absolute or single-component relative) to an inode.
+ *
+ * Absolute paths go straight to #fs_lookup. Bare names are prefixed with
+ * `cwd_path + "/"` and then looked up. Does NOT handle `..` or `.`.
+ *
+ * @return Inode number, or #INVALID_INO if the path doesn't resolve.
+ */
 static uint64_t resolve_path(const char* arg) {
     if (arg[0] == '/') return fs_lookup(arg);
     char full[MAX_PATH];
@@ -89,8 +158,9 @@ static uint64_t resolve_path(const char* arg) {
     return fs_lookup(full);
 }
 
-// ---- Commands ----
+// ====== Commands ======
 
+/** @brief Print the kernel banner used by `kernel` and at shell start-up. */
 static void print_banner() {
     uart_puts("kehinde-kernel v1.0\r\n");
     uart_puts("Authored by Kehinde Adeoso\r\n");
@@ -98,6 +168,7 @@ static void print_banner() {
     uart_puts("Type 'help' for a list of commands.\r\n");
 }
 
+/** @brief `help` — list the available commands. */
 static void cmd_help() {
     uart_puts("Commands:\r\n");
     uart_puts("  ls [path]              list directory\r\n");
@@ -114,21 +185,25 @@ static void cmd_help() {
     uart_puts("  help                   show this message\r\n");
 }
 
+/** @brief `clear` — emit the ANSI "erase screen + cursor home" sequence. */
 static void cmd_clear() {
     uart_puts("\033[2J\033[H");
 }
 
+/** @brief `shutdown` — mask all exceptions and park the core in `wfi`. */
 static void cmd_shutdown() {
     uart_puts("Shutting down kehinde-kernel. Ciao!\r\n");
     asm volatile("msr daifset, #0xf");
     for (;;) asm volatile("wfi");
 }
 
+/** @brief `pwd` — print the current working directory. */
 static void cmd_pwd() {
     uart_puts(cwd_path);
     uart_puts("\r\n");
 }
 
+/** @brief `ls [path]` — list a directory; append `/` to subdirectory entries. */
 static void cmd_ls(int argc, char** argv) {
     uint64_t dir_ino;
     if (argc < 2) {
@@ -153,6 +228,7 @@ static void cmd_ls(int argc, char** argv) {
     if (!any) uart_puts("(empty)\r\n");
 }
 
+/** @brief `cd <path>` — change the cwd. Refuses non-directories. */
 static void cmd_cd(int argc, char** argv) {
     if (argc < 2) { uart_puts("cd: missing path\r\n"); return; }
     const char* target = argv[1];
@@ -174,6 +250,7 @@ static void cmd_cd(int argc, char** argv) {
     }
 }
 
+/** @brief `mkdir <name>` — create a directory in the cwd. */
 static void cmd_mkdir(int argc, char** argv) {
     if (argc < 2) { uart_puts("mkdir: missing name\r\n"); return; }
     if (argv[1][0] == '/') { uart_puts("mkdir: use relative names\r\n"); return; }
@@ -182,6 +259,7 @@ static void cmd_mkdir(int argc, char** argv) {
     }
 }
 
+/** @brief `touch <name>` — create an empty file in the cwd. */
 static void cmd_touch(int argc, char** argv) {
     if (argc < 2) { uart_puts("touch: missing name\r\n"); return; }
     if (argv[1][0] == '/') { uart_puts("touch: use relative names\r\n"); return; }
@@ -190,6 +268,7 @@ static void cmd_touch(int argc, char** argv) {
     }
 }
 
+/** @brief `cat <file>` — stream the file's contents to UART. */
 static void cmd_cat(int argc, char** argv) {
     if (argc < 2) { uart_puts("cat: missing file\r\n"); return; }
     uint64_t ino = resolve_path(argv[1]);
@@ -207,6 +286,7 @@ static void cmd_cat(int argc, char** argv) {
     else uart_puts("\r\n");
 }
 
+/** @brief `write <file> <text...>` — overwrite the file with the joined text. */
 static void cmd_write(int argc, char** argv) {
     if (argc < 3) { uart_puts("write: usage: write <file> <text>\r\n"); return; }
     uint64_t ino = resolve_path(argv[1]);
@@ -218,6 +298,7 @@ static void cmd_write(int argc, char** argv) {
     if (fs_write(ino, 0, len, text) < 0) uart_puts("write: failed\r\n");
 }
 
+/** @brief `rm <name>` — unlink a file or empty directory in the cwd. */
 static void cmd_rm(int argc, char** argv) {
     if (argc < 2) { uart_puts("rm: missing name\r\n"); return; }
     if (argv[1][0] == '/') { uart_puts("rm: use relative names\r\n"); return; }
@@ -226,7 +307,7 @@ static void cmd_rm(int argc, char** argv) {
     }
 }
 
-// ---- Shell entry point ----
+// ====== Shell entry point ======
 
 void shell_run() {
     char line[MAX_LINE];

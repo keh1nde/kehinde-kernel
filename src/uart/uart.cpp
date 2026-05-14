@@ -1,14 +1,35 @@
+/**
+ * @file uart.cpp
+ * @brief PL011 UART driver implementation.
+ *
+ * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
+ * Raspberry Pi 3 Model B (Cortex-A53).
+ *
+ * Drives the BCM2835's PL011 UART at 115200 8N1 with FIFOs enabled. All
+ * MMIO goes through the inline `mmio_read`/`mmio_write` helpers in
+ * `<uart.h>`. Public API is documented in the header; this file documents
+ * register-level behavior.
+ *
+ * References:
+ *   - ARM PrimeCell UART (PL011) Technical Reference Manual (ARM DDI 0183)
+ *   - BCM2835 ARM Peripherals, §13 (UART) and §6 (GPIO)
+ *
+ * @author Kehinde Adeoso
+ * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
+ */
+
 #include <stddef.h>
 #include <stdint.h>
 #include "uart.h"
 
+/** PL011 UART and GPIO register addresses (BCM2835 peripheral base 0x3F000000). */
 enum {
 	GPIO_BASE = 0x3F200000,
 
 	GPPUD = (GPIO_BASE + 0x94),
 	GPPUDCLK0 = (GPIO_BASE + 0x98),
 
-	UART0_BASE = 0x3F201000, // for raspi2 & 3, 0x20201000 for raspi1
+	UART0_BASE = 0x3F201000, // raspi2 & 3; 0x20201000 on raspi1.
 
 		UART0_DR     = (UART0_BASE + 0x00),
 		UART0_RSRECR = (UART0_BASE + 0x04),
@@ -33,8 +54,12 @@ enum {
 
 void uart_init()
 {
+	// Disable the UART before reconfiguring.
 	mmio_write(UART0_CR, 0x00000000);
 
+	// Disable pull-up/down on GPIO 14/15 (UART TX/RX), per the BCM2835
+	// GPIO pull-state programming sequence (write GPPUD, delay, latch via
+	// GPPUDCLK0, delay, clear GPPUDCLK0).
 	mmio_write(GPPUD, 0x00000000);
 	delay(150);
 
@@ -43,27 +68,39 @@ void uart_init()
 
 	mmio_write(GPPUDCLK0, 0x00000000);
 
+	// Clear all pending UART interrupts.
 	mmio_write(UART0_ICR, 0x7FF);
 
+	// Baud divisors for 115200 baud assuming a 3 MHz UART clock under QEMU
+	// (IBRD=1, FBRD=40). Real hardware programs different divisors via
+	// firmware; values stable for development under QEMU.
 	mmio_write(UART0_IBRD, 1);
 	mmio_write(UART0_FBRD, 40);
 
+	// LCRH: FIFOs enabled (FEN), 8-bit word length (WLEN=3).
 	mmio_write(UART0_LCRH, (1 << 4) | (1 << 5) | (1 << 6));
 
+	// Unmask the set of interrupts the kernel currently cares about.
+	// UART RX IRQ (bit 4) is intentionally enabled but the IRQ controller
+	// side (IRQ_EN2 bit 25) is currently disabled to avoid an IRQ storm —
+	// see CLAUDE.md / known issues.
 	mmio_write(UART0_IMSC, (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
 						(1 << 7) | (1 << 8) | (1 << 9) | (1 << 10));
 
+	// Re-enable the UART with TX and RX.
 	mmio_write(UART0_CR, (1 << 0) | (1 << 8) | (1 << 9));
 }
 
 void uart_putc(unsigned char c)
 {
+	// Spin while TXFF (TX FIFO full).
 	while (mmio_read(UART0_FR) & (1 << 5)) { }
 	mmio_write(UART0_DR, c);
 }
 
 unsigned char uart_getc()
 {
+	// Spin while RXFE (RX FIFO empty).
 	while ( mmio_read(UART0_FR) & (1 << 4) ) { }
 	return mmio_read(UART0_DR);
 }
@@ -87,6 +124,7 @@ void uart_put_hex(uint64_t val) {
 		return;
 	}
 
+	// Decompose into base-16 digits, least-significant first.
 	for (size_t i = 0; val != 0; i++) {
 		value_buffer[i] = val % 16;
 		counter++;
@@ -96,6 +134,7 @@ void uart_put_hex(uint64_t val) {
 
 	uart_putc('0');
 	uart_putc('x');
+	// Emit digits in reverse (most-significant first).
 	for (size_t i = 0; i != counter; i++) {
 		print_helper(value_buffer[counter - 1 - i]);
 	}
