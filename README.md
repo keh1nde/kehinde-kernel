@@ -2,19 +2,11 @@
 
 **kehinde-kernel** is a bare-metal AArch64 operating system for the Raspberry Pi 3 Model B that I wrote from scratch in C++ and AArch64 assembly. It boots on real hardware and under QEMU brings up its own paging, manages its own memory, and drops the user into an interactive shell sitting on an in-memory filesystem — all without a standard library underneath.
 
-<!--
-  TODO: replace this block with an asciinema embed of a shell session.
-  Suggested flow: boot, help, mkdir foo, cd foo, touch hello, write hello
-  "hi there", cat hello, cd /, ls. Capture with:
-    asciinema rec demo.cast
-  then upload to asciinema.org and paste the player snippet here.
--->
-
 [![asciicast](https://asciinema.org/a/GkIA1y66Ms6ZYH43.svg)](https://asciinema.org/a/GkIA1y66Ms6ZYH43)
 
 ## Quickstart
 
-The fastest way to see it run is the prebuilt release. Building from source needs the AArch64 cross toolchain.
+The easiest way to use kehinde-kernel is via the latest release. Building from source needs the AArch64 cross toolchain.
 
 ### Option A: run the release binary (no toolchain required)
 
@@ -48,11 +40,11 @@ make clean
 
 ## What's inside
 
-Every feature in the bullet list below is implemented from scratch. There is no `libc`, no Raspberry Pi firmware stub, no third-party bootloader — just the linker script, the cross toolchain, and the code in this repo.
+The kernel includes the following features:
 
 - **Boot sequence.** Parks secondary cores, drops from exception level 2 to exception level 1, sets up the stack, zeroes the BSS section, installs the exception vector table, unmasks interrupts, and hands off to the C++ kernel entry point. (`src/boot.S`)
 - **Serial driver.** A driver for the Raspberry Pi's PL011 UART, configured for 115200 baud, 8N1. Used for boot logging, panic messages, and the interactive shell. (`src/uart/`)
-- **Interrupts and exception handling.** A 16-entry AArch64 vector table with register-save/restore stubs in assembly, dispatching to C++ handlers. The synchronous-exception handler decodes the exception syndrome register and dumps the fault address, which made the rest of the kernel possible to debug. (`src/interrupts/`)
+- **Interrupts and exception handling.** A 16-entry AArch64 vector table with register-save/restore stubs in assembly, dispatching to C++ handlers. The synchronous-exception handler decodes the exception syndrome register and dumps the fault address, which made the rest of the kernel possible to debug. Currently, only the entries for synchronous exceptions and IRQs for the current Exception Level are implemented. (`src/interrupts/`) 
 - **Generic timer.** The Cortex-A53's physical timer programmed to fire roughly every 100 milliseconds (10 Hz). Tick handling lives in the interrupt path. (`src/timer/`)
 - **Physical memory manager.** A flat-bitmap frame allocator over the Pi's RAM, with 4 KiB frames and a bitmap placed at the page-aligned end of the kernel image. (`src/pmm/`)
 - **Memory management unit (paging / virtual memory).** Three-level page tables (level 1 → level 2 → level 3) with a 4 KiB granule and a 39-bit virtual address space. The kernel runs identity-mapped: I bring up the tables, flip the MMU on, and keep going. Includes a software page-table walker, on-demand table allocation, an `unmap` path, and the proper barrier / TLB-invalidate sequence around every page-table edit. (`src/mmu/`)
@@ -80,34 +72,40 @@ Initialization order in `kernel_main` is load-bearing: paging comes up first (wh
 
 ## Project writeup
 
-The bigger story — the design decisions I made and the bugs that taught me the most — lives in the project writeup.
+I've written at length everything that went into this project. This includes design, implementation, hitches, and more. The writup is available here:
 
 <!-- TODO: replace with the actual writeup link once it's published. -->
-
 > _Writeup link goes here._
 
-A few highlights to expect there: chasing a translation fault down to a one-line linker-script fix (the kernel's page tables were quietly being overwritten by uninitialized C++17 inline variables); the multi-day MMU bring-up where the symptom was always "the CPU resets" until I built a fault decoder that could tell me which load instruction was hitting which unmapped address; and the moment I realized that `fs_write` to a fresh file was silently writing to physical address 8 because I had captured a block pointer one statement too early.
+> Some fun excerpts include... 
 
-## Known limitations
 
-What I plan on working on in the future are:
+## Next Steps:
 
-- **UART receive interrupt is disabled at the controller.** The driver is wired for it, but the interrupt controller mask is left clear to avoid a storm. The shell uses polling reads instead. Proper handling needs a read of the masked-interrupt-status register and an acknowledge to the interrupt-clear register.
-- **No `kfree`.** The kernel heap is a pure bump allocator — memory is freed at reboot. The reservation strategy is designed so that a future slab or free-list allocator can sit on the same backing region.
-- **No multi-core (SMP) support.** Cores 1–3 are parked in a wait-for-event loop at boot. Only core 0 runs the kernel.
-- **No Raspberry Pi 5 port.** The kernel is currently specific to the Pi 3 Model B's BCM2835 peripheral layout and Cortex-A53 specifics.
+<!-- From the list: **No `kfree`.** The kernel heap is a pure bump allocator — memory is freed at reboot. The reservation strategy is designed so that a future slab or free-list allocator can sit on the same backing region. --->
+
+Next, I'll work on:
+
+- **UART receive interrupt is disabled at the controller.** The driver is wired for it, but the interrupt controller mask is left clear to avoid locking up the kernel with interrupt requests. The shell uses polling reads instead. Proper handling needs a read of the masked-interrupt-status register and an acknowledge to the interrupt-clear register.
 - **Page tables are not write-execute separated.** Everything is identity-mapped as readable-writable-executable, and the linker emits a single load segment with all three permissions. The split is planned but not done.
 - **`free_frame` does not validate its input.** A caller passing a misaligned or out-of-region address can corrupt the bitmap. There is a "bit currently set" guard but no upfront alignment or range check.
 - **Intermediate level-2 and level-3 page tables are not reclaimed by `unmap`.** Only the terminal page descriptors are zeroed; the table frames that held them stay allocated.
 
+In preparation for another project, I'll then do the following:
+- **A Raspberry Pi 5 port.** The kernel is currently specific to the Pi 3 Model B's BCM2835 peripheral layout and Cortex-A53 specifics. I'll port this kernel to the Raspberry Pi 5.
+- **Implement multicore support.** Cores 1–3 are parked in a wait-for-event loop at boot. Only core 0 runs the kernel.
+
 ## References
 
-The PDFs themselves are not in this repository — they are large vendor documents that are freely available from the vendors.
+I used the following documents as reference during project implementation
+
+<!-- Make sure to list the Dinosaur Book and the OSDev wiki -->
 
 - **Arm Architecture Reference Manual for A-profile architecture (ARM DDI 0487)** — exception levels, the virtual memory architecture (VMSAv8-64), and the generic timer. <https://developer.arm.com/documentation/ddi0487/latest/>
 - **Arm Cortex-A53 Technical Reference Manual (ARM DDI 0500)** — the specific core on the Pi 3 Model B. <https://developer.arm.com/documentation/ddi0500/latest/>
 - **BCM2835 ARM Peripherals** — the SoC's memory-mapped I/O layout: the PL011 UART, the legacy interrupt controller, the GPIO block. <https://datasheets.raspberrypi.com/bcm2835/bcm2835-peripherals.pdf>
+- **Operating Systems Concepts by Avi Silberschatz, Peter Baer Galvin, and Greg Gagne** — a textbook covering all fundamental operating system structures, conventions, and others. <https://os-book.com/OS10/index.html>
 
 ## License
 
-This project is released under the MIT License. See [LICENSE](LICENSE) for details.
+I've releasd this project under the MIT License. See [LICENSE](LICENSE) for details.
