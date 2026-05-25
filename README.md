@@ -1,6 +1,6 @@
 # kehinde-kernel
 
-**kehinde-kernel** is a bare-metal AArch64 operating system for the Raspberry Pi 3 Model B that I wrote from scratch in C++ and AArch64 assembly. It boots on real hardware and under QEMU brings up its own paging, manages its own memory, and drops the user into an interactive shell sitting on an in-memory filesystem — all without a standard library underneath.
+**kehinde-kernel** is a bare-metal AArch64 operating system for the Raspberry Pi 3 Model B that I wrote from scratch in C++ and AArch64 assembly. It boots on real hardware and under QEMU brings up its own paging, manages its own memory, and drops the user into an interactive shell sitting on an in-memory filesystem.
 
 [![asciicast](https://asciinema.org/a/GkIA1y66Ms6ZYH43.svg)](https://asciinema.org/a/GkIA1y66Ms6ZYH43)
 
