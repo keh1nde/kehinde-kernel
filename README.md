@@ -75,9 +75,7 @@ Initialization order in `kernel_main` is load-bearing: paging comes up first (wh
 I've written at length everything that went into this project. This includes design, implementation, hitches, and more. The writup is available here:
 
 <!-- TODO: replace with the actual writeup link once it's published. -->
-> _Writeup link goes here._
-
-> Some fun excerpts include... 
+> _Writeup still cooking, come back soon._
 
 
 ## Next Steps:
