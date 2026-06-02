@@ -18,7 +18,7 @@
 #ifndef RASPBERRY_PI_OPERATING_SYSTEM_HEAP_ALLOC_H
 #define RASPBERRY_PI_OPERATING_SYSTEM_HEAP_ALLOC_H
 
-#include <stdint-gcc.h>
+#include <stdint.h>
 #include <stdint.h>
 
 

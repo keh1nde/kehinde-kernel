@@ -26,7 +26,7 @@
 
 #ifndef RASPBERRY_PI_OPERATING_SYSTEM_FILESYSTEM_H
 #define RASPBERRY_PI_OPERATING_SYSTEM_FILESYSTEM_H
-#include <stdint-gcc.h>
+#include <stdint.h>
 
 
 typedef struct block block_t;
@@ -86,6 +86,10 @@ struct dirent {
 	uint64_t inode_id;
 	char name[MAX_SIZE + 1];
 };
+
+// 15 dirents must fit in one block (BLOCK_SIZE - sizeof(block_t*) = 4088)
+// Thus each dirent must be 264 bytes.
+static_assert(sizeof(dirent) == 264);
 
 // ====== Public API ======
 
