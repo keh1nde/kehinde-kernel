@@ -72,10 +72,10 @@ Initialization order in `kernel_main` is load-bearing: paging comes up first (wh
 
 ## Project writeup
 
-I've written at length everything that went into this project. This includes design, implementation, hitches, and more. The writup is available here:
+I've written at length everything that went into this project. This includes design, implementation, hitches, and more.
 
 <!-- TODO: replace with the actual writeup link once it's published. -->
-> _Writeup still cooking, come back soon._
+[View the writeup here](https://cuny907-my.sharepoint.com/:b:/g/personal/kehinde_adeoso77_login_cuny_edu/IQDQ8UB1CopFS7LEZFEokoCJAd-rrPZ4r6--N73vv5tU2Xw?e=tpBXf2)
 
 
 ## Next Steps:
@@ -106,4 +106,4 @@ I used the following documents as reference during project implementation
 
 ## License
 
-I've releasd this project under the MIT License. See [LICENSE](LICENSE) for details.
+I've released this project under the MIT License. See [LICENSE](LICENSE) for details.
