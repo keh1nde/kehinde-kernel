@@ -91,6 +91,18 @@ void uart_init()
 	mmio_write(UART0_CR, (1 << 0) | (1 << 8) | (1 << 9));
 }
 
+void uart_handle_irq() {
+		if (
+			(mmio_read(UART0_DR) & 8) |
+			(mmio_read(UART0_DR) & 9) |
+			(mmio_read(UART0_DR) & 10) |
+			(mmio_read(UART0_DR) & 11)
+		) return;
+
+		uart_putc(mmio_read(UART0_DR) & 0xFF);
+		mmio_write(UART0_ICR, 0x7FF);
+}
+
 void uart_putc(unsigned char c)
 {
 	// Spin while TXFF (TX FIFO full).

@@ -71,6 +71,15 @@ static inline void delay(int32_t count) {
 void uart_init();
 
 /**
+ * @brief Handle interrupts made by UART.
+ *
+ * Reads UART_MIS to confirm an RX interrupt is being emitted, processes the
+ * incoming byte, then writes to UART0_ICR to clear the interrupt.
+ */
+void uart_handle_irq();
+
+
+/**
  * @brief Transmit one byte over UART0, blocking until the TX FIFO has space.
  *
  * Polls UART0_FR.TXFF and busy-waits while the transmit FIFO is full. No

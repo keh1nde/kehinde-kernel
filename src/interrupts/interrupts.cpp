@@ -44,7 +44,7 @@ enum {
 	IRQ_BASIC = (IRQ_BASE + 0x200),
 	IRQ_P1 = (IRQ_BASE + 0x204),
 	IRQ_P2 = (IRQ_BASE + 0x208),
-	IRQ_FC = (IRQ_BASE + 0x20C),
+	IRQ_FC = (IRQ_BASE + 0x20C), // The IRQ pending register
 	IRQ_EN1 = (IRQ_BASE + 0x210),
 	IRQ_EN2 = (IRQ_BASE + 0x214),
 	IRQ_BEN = (IRQ_BASE + 0x218),
@@ -115,20 +115,6 @@ extern "C" void handle_synchronous_interrupts() {
 			uart_puts("SVC from AArch64: System call. \n");
 
 	}
-
-	/*
-	 * EC reference (bits [31:26] of ESR_EL1):
-	 *   0x00: unknown
-	 *   0x01: trapped WFI/WFE
-	 *   0x0E: illegal execution state
-	 *   0x15: SVC from AArch64 (syscall)
-	 *   0x20: instruction abort from lower EL
-	 *   0x21: instruction abort from same EL
-	 *   0x24: data abort from lower EL
-	 *   0x25: data abort from same EL
-	 *   0x2C: SP alignment fault
-	 *   0x3C: BRK instruction (debug breakpoint)
-	 */
 }
 
 extern "C" void interrupt_init() {
@@ -143,11 +129,21 @@ extern "C" void interrupt_init() {
 	// bit 25) is intentionally left masked — see CLAUDE.md known issues.
 	mmio_write(IRQ_BEN, 1 << 0);
 	mmio_write(IRQ_EN_C0, (1 << 1)); // Per-core timer source on the ARM local block.
+
+	// Enable UART interrupts
+	mmio_write(IRQ_EN2, (1 << 25));
 }
 
 extern "C" void handle_interrupt_requests() {
 	uint64_t irq_pend_status;
 	irq_pend_status = mmio_read(IRQ_C0_SOURCE);
+
+	// UART interrupt handling.
+	// If UART bit is read, then handler is called from uart.cpp
+	if (mmio_read(IRQ_P2) & (1 << 25) ) {
+		uart_handle_irq();
+
+	}
 
 	// Per-core timer IRQ: reload CNTP_TVAL_EL0 for the next tick, then
 	// advance and print the in-kernel clock.
