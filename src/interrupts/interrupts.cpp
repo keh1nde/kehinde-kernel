@@ -20,6 +20,20 @@
  * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
  */
 
+/*
+* EC reference (bits [31:26] of ESR_EL1):
+*   0x00: unknown
+*   0x01: trapped WFI/WFE
+*   0x0E: illegal execution state
+*   0x15: SVC from AArch64 (syscall)
+*   0x20: instruction abort from lower EL
+*   0x21: instruction abort from same EL
+*   0x24: data abort from lower EL
+*   0x25: data abort from same EL
+*   0x2C: SP alignment fault
+*   0x3C: BRK instruction (debug breakpoint)
+*/
+
 #include "interrupts.h"
 
 #include <stdint.h>
