@@ -16,6 +16,7 @@
 
 #include "pmm.h"
 
+
 /** Allocation bitmap, located at the page-aligned `__kernel_end`. */
 uint64_t* bitmap;
 
@@ -97,10 +98,16 @@ uint64_t alloc_frame() {
 }
 
 void free_frame(const uint64_t addr) {
-	// NOTE: no validation of @p addr — caller must pass an address that is
-	// page-aligned and within `[phys_mem_start, PHYS_MEM_END)`. Bad inputs
-	// can index out of bounds. See CLAUDE.md known issues.
-	const uint64_t frame_index = (addr - phys_mem_start) / PAGE_SIZE;
+
+	// OOB address check, keeps from accessing invalid memory
+	if (addr < phys_mem_start || addr >= PHYS_MEM_END) return;
+
+	// Page-alignment check, ensures we acquire and free the correct frame.
+	if (addr % PAGE_SIZE != 0) return;
+
+	// Valid index check, keeps from indexing past bitmap end.
+	uint64_t frame_index = (addr - phys_mem_start) / PAGE_SIZE;
+	if (frame_index >= total_frames) return;
 
 	const uint64_t word_index = frame_index / 64;
 
