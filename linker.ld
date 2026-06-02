@@ -1,5 +1,13 @@
 ENTRY(_start)
 
+/* We define two segments to eliminate the RWX vulnerablility,
+establish W^X boundaries for future MMU enforcement. */
+PHDRS {
+  text_seg PT_LOAD FLAGS(5);
+  data_seg PT_LOAD FLAGS(6);
+}
+
+
 SECTIONS
 {
     /* Starts at LOADER_ADDR. */
@@ -11,6 +19,7 @@ SECTIONS
         KEEP(*(.text.boot))
         *(.text)
     }
+    : text_seg
     . = ALIGN(4096); /* align to page size */
     __text_end = .;
 
@@ -19,6 +28,7 @@ SECTIONS
     {
         *(.rodata .rodata.*)
     }
+    : text_seg
     . = ALIGN(4096); /* align to page size */
     __rodata_end = .;
 
@@ -27,6 +37,7 @@ SECTIONS
     {
         *(.data .data.*)
     }
+    : data_seg
     . = ALIGN(4096); /* align to page size */
     __data_end = .;
 
@@ -37,6 +48,7 @@ SECTIONS
         *(.bss .bss.*)
         *(COMMON)
     }
+    : data_seg
     . = ALIGN(4096); /* align to page size */
     __bss_end = .;
     __end = .;
