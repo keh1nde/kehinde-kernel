@@ -1,11 +1,11 @@
 # Build artifacts
-kernel8.elf
-kernel8.img
+p-docs/release-assets/v1.0.0/kernel8.elf
+p-docs/release-assets/v1.0.0/kernel8.img
 buiid/
 obj/
 
 # Local data
-docs/
+p-docs/
 
 # Debug/runtime output
 qemu_log.txt
