@@ -163,9 +163,9 @@ static uint64_t resolve_path(const char* arg) {
 
 /** @brief Print the kernel banner used by `kernel` and at shell start-up. */
 static void print_banner() {
-    uart_puts("kehinde-kernel v1.0\r\n");
+    uart_puts("kehinde-kernel v1.1\r\n");
     uart_puts("Authored by Kehinde Adeoso\r\n");
-    uart_puts("Finished May 13, 2026\r\n");
+    uart_puts("Finished May 13, 2026. Updated June 2, 2026\r\n");
     uart_puts("Type 'help' for a list of commands.\r\n");
 }
 
