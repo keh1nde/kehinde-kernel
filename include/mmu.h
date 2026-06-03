@@ -94,6 +94,17 @@ void unmap(uint64_t va, uint64_t size);
 uint64_t* _get_or_alloc_table(uint64_t* table, uint64_t index);
 
 /**
+ * @brief Detects if a given page @p table is empty by scanning all 512 pages.
+ *
+ * Read-only. Walks page table's entries to determine if page table points.
+ * to empty tables.
+ *
+ * @param table The table being checked
+ * @return True if the table's 512 entries are all empty, or false otherwise.
+ */
+bool _table_is_empty(const uint64_t* table);
+
+/**
  * @brief Software page-table walk for @p virt.
  *
  * Read-only: never allocates tables. Walks L1→L2→L3 and returns the

@@ -217,8 +217,24 @@ void unmap(uint64_t va, uint64_t size) {
 		uint64_t* l3_table = reinterpret_cast<uint64_t *>(l2_desc & ADDR_MASK);
 
 		l3_table[L3_INDEX] = 0;
+
+		// Clear L3 table if empty.
+		if (_table_is_empty(l3_table)) {
+			// Zero out table descriptors before freeing frame to ensure
+			// the walker doesn't follow a stale frame.
+
+			l3_table[L3_INDEX] = 0ULL;
+			free_frame(reinterpret_cast<uint64_t>(l3_table));
+		}
+
+		// Clear L2 table if empty.
+		if (_table_is_empty(l2_table)) {
+			l2_table[L2_INDEX] = 0ULL;
+			free_frame(reinterpret_cast<uint64_t>(l2_table));
+		}
 	}
 
+	// Invalidate stale TLB entries for every page cleared.
 	for (int i = 0; i < num_pages; i++) {
 		uint64_t va_page = (va + i * PAGE_SIZE) >> 12;
 		asm volatile("tlbi vaae1is, %0" :: "r"(va_page) : "memory");
@@ -226,4 +242,11 @@ void unmap(uint64_t va, uint64_t size) {
 
 	asm volatile("dsb ish" ::: "memory");
 	asm volatile("isb" ::: "memory");
+}
+
+bool _table_is_empty(const uint64_t* table) {
+	for (int i = 0; i < 512; i++) {
+		if (table[i] != 0) return false;
+	}
+	return true;
 }
