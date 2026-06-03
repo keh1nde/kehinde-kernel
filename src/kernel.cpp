@@ -62,7 +62,7 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	fs_init();
 	uart_puts("fs_init done.\n");
 
-	// Timer omitted: timer IRQ prints "Uptime: N" and would disrupt the shell prompt.
+	timer_init();
 	interrupt_init();
 
 	shell_run();

@@ -52,3 +52,8 @@ void print_time() {
 	uart_puts("\rUptime: ");
 	uart_put_uint(get_time());
 }
+
+void shell_print_time() {
+	uart_puts("Uptime: ");
+	uart_put_uint(get_time());
+}

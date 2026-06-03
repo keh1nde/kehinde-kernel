@@ -28,6 +28,7 @@
 #include "shell.h"
 #include "filesystem.h"
 #include "uart.h"
+#include "timer.h"
 
 /** Maximum command line length, in bytes. */
 #define MAX_LINE 256
@@ -181,6 +182,7 @@ static void cmd_help() {
     uart_puts("  rm <name>              remove file or empty directory\r\n");
     uart_puts("  clear                  clear the screen\r\n");
     uart_puts("  kernel                 show kernel info\r\n");
+    uart_puts("  uptime                 print the uptime of the kernel\r\n");
     uart_puts("  shutdown               halt the system\r\n");
     uart_puts("  help                   show this message\r\n");
 }
@@ -307,6 +309,12 @@ static void cmd_rm(int argc, char** argv) {
     }
 }
 
+/** @brief `uptime` — print the uptime of the kernel in seconds. */
+static void cmd_timer() {
+    shell_print_time();
+    uart_puts("\n");
+}
+
 // ====== Shell entry point ======
 
 void shell_run() {
@@ -337,6 +345,7 @@ void shell_run() {
         else if (seq(argv[0], "clear"))    cmd_clear();
         else if (seq(argv[0], "kernel"))   print_banner();
         else if (seq(argv[0], "shutdown")) cmd_shutdown();
+        else if (seq(argv[0], "uptime")) cmd_timer();
         else {
             uart_puts(argv[0]);
             uart_puts(": command not found\r\n");

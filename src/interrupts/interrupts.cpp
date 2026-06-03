@@ -165,6 +165,10 @@ extern "C" void handle_interrupt_requests() {
 	if (irq_pend_status & (1 << 1)) {
 		asm volatile("msr CNTP_TVAL_EL0, %0" :: "r"(freq / 10));
 		increment_time();
-		print_time();
+
+		// The timer API is now in charge of printing time when called.
+		// As a result the bottom has been temporarily removed.
+
+		// print_time();
 	}
 }

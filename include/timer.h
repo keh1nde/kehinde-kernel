@@ -41,3 +41,6 @@ uint64_t get_freq();
 
 /** @brief Emit `"Uptime: <ticks>"` over UART, preceded by a carriage return. */
 void print_time();
+
+/** @brief Emit "Uptime: <ticks>" over UART without a carriage return. Used with the shell.*/
+void shell_print_time();
