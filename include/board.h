@@ -9,6 +9,10 @@
  * selected at compile time via BOARD_PI3 or BOARD_PI5 preprocessor define.
  * Add a new #elif here when porting to a new target.
  *
+ * Note: GIC-400 variables have docustrings to eliminate the need to
+ * revisit ARM documentation. All variables will recieve documentation at
+ * a later date.
+ *
  * @author Kehinde Adeoso
  * @copyright 2026 Kehinde Adeoso. SPDX-License-Identifier: MIT
  */
