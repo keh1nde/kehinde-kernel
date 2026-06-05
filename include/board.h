@@ -114,85 +114,94 @@
 	 */
 	constexpr uint64_t LOCAL_PERIPHERAL_BASE = 0x107FFF8000;
 
-	enum {
-		/**
-		 * GIC-400 Distributor (GICD) — CPU physical 0x107FFF9000.
-		 *
-		 * The Distributor is the global interrupt-routing hub shared by all
-		 * cores. It controls per-interrupt enable/disable (GICD_ISENABLER),
-		 * priority (GICD_IPRIORITYR), target-core routing (GICD_ITARGETSR),
-		 * and trigger configuration (GICD_ICFGR). Initialised once by core 0
-		 * during interrupt controller bring-up.
-		 *
-		 * Offset +0x1000 from LOCAL_PERIPHERAL_BASE per GIC-400 memory map
-		 * (ARM IHI0048). Source: DT reg first tuple (0x7fff9000 + SoC offset).
-		 */
-		GICD_BASE = LOCAL_PERIPHERAL_BASE + 0x1000,
+	/**
+	 * GIC-400 Distributor (GICD) — CPU physical 0x107FFF9000.
+	 *
+	 * The Distributor is the global interrupt-routing hub shared by all
+	 * cores. It controls per-interrupt enable/disable (GICD_ISENABLER),
+	 * priority (GICD_IPRIORITYR), target-core routing (GICD_ITARGETSR),
+	 * and trigger configuration (GICD_ICFGR). Initialised once by core 0
+	 * during interrupt controller bring-up.
+	 *
+	 * Offset +0x1000 from LOCAL_PERIPHERAL_BASE per GIC-400 memory map
+	 * (ARM IHI0048). Source: DT reg first tuple (0x7fff9000 + SoC offset).
+	 */
+	constexpr uint64_t GICD_BASE = LOCAL_PERIPHERAL_BASE + 0x1000;
 
-		/**
-		 * GIC-400 CPU Interface (GICC) — CPU physical 0x107FFFA000.
-		 *
-		 * Each core has its own CPU Interface view at this address. A core
-		 * reads GICC_IAR to acknowledge the highest-priority pending interrupt
-		 * (which also dequeues it) and writes GICC_EOIR to signal End-Of-
-		 * Interrupt. GICC_PMR sets the priority mask; GICC_CTLR enables the
-		 * interface. Must be initialized on every core that will handle IRQs.
-		 *
-		 * Offset +0x2000 from LOCAL_PERIPHERAL_BASE per GIC-400 memory map
-		 * (ARM IHI0048). Source: DT reg second tuple (0x7fffa000 + SoC offset).
-		 */
-		GICC_BASE = LOCAL_PERIPHERAL_BASE + 0x2000,
+	/**
+	 * GIC-400 CPU Interface (GICC) — CPU physical 0x107FFFA000.
+	 *
+	 * Each core has its own CPU Interface view at this address. A core
+	 * reads GICC_IAR to acknowledge the highest-priority pending interrupt
+	 * (which also dequeues it) and writes GICC_EOIR to signal End-Of-
+	 * Interrupt. GICC_PMR sets the priority mask; GICC_CTLR enables the
+	 * interface. Must be initialized on every core that will handle IRQs.
+	 *
+	 * Offset +0x2000 from LOCAL_PERIPHERAL_BASE per GIC-400 memory map
+	 * (ARM IHI0048). Source: DT reg second tuple (0x7fffa000 + SoC offset).
+	 */
+	constexpr uint64_t GICC_BASE = LOCAL_PERIPHERAL_BASE + 0x2000;
 
-		/**
-		 * GIC-400 Hypervisor Control (GICH) — CPU physical 0x107FFFC000.
-		 * GIC-400 Virtual CPU Interface (GICV) — CPU physical 0x107FFFE000.
-		 *
-		 * Used only when a hypervisor at EL2 virtualizes interrupt delivery to
-		 * guest OSes at EL1. Not initialized in this kernel (EL1 only, no
-		 * virtualization). Documented here so the addresses are not re-derived
-		 * if EL2 work starts in a later phase.
-		 *
-		 * Source: DT reg third/fourth tuples; ARM IHI0048 §8.
-		 */
-		GICH_BASE = LOCAL_PERIPHERAL_BASE + 0x4000,
-		GICV_BASE = LOCAL_PERIPHERAL_BASE + 0x6000,
+	/**
+	 * GIC-400 Hypervisor Control (GICH) — CPU physical 0x107FFFC000.
+	 * GIC-400 Virtual CPU Interface (GICV) — CPU physical 0x107FFFE000.
+	 *
+	 * Used only when a hypervisor at EL2 virtualizes interrupt delivery to
+	 * guest OSes at EL1. Not initialized in this kernel (EL1 only, no
+	 * virtualization). Documented here so the addresses are not re-derived
+	 * if EL2 work starts in a later phase.
+	 *
+	 * Source: DT reg third/fourth tuples; ARM IHI0048 §8.
+	 */
+	constexpr uint64_t GICH_BASE = LOCAL_PERIPHERAL_BASE + 0x4000;
+	constexpr uint64_t GICV_BASE = LOCAL_PERIPHERAL_BASE + 0x6000;
 
-		/**
-		 * RP1 PL011 UART0 base — CPU physical 0x1F00030000.
-		 *
-		 * Still a PL011 (same IP as the Pi 3); all register offsets (DR, FR,
-		 * IBRD, FBRD, LCRH, CR, IMSC, ICR, MIS, etc.) are unchanged from the
-		 * Pi 3 driver — only this base address differs. The uart_pi5 driver
-		 * should use PERIPHERAL_BASE + 0x30000 as its base.
-		 *
-		 * GPIO muxing for UART0 on Pi 5 goes through RP1 GPIO (not BCM GPIO),
-		 * so the Pi 3 GPPUD/GPPUDCLK pull-up sequence does not apply here.
-		 *
-		 * Source: RP1 Peripherals datasheet §11; confirmed via /proc/iomem
-		 * (`1f00030000.serial`) harvest 2026-06-04.
-		 */
-		UART0_BASE = PERIPHERAL_BASE + 0x30000,
+	// RP1 GPIO — IO_BANK0 (function select) and PADS_BANK0 (pad control).
+	// Addresses derived via: PERIPHERAL_BASE + (rp1_internal_offset - 0x40000000).
+	// Source: RP1 Peripherals datasheet §3 (GPIO).
+	constexpr uint64_t IO_BANK0_BASE  = PERIPHERAL_BASE + (0x400d0000 - 0x40000000);
+	constexpr uint64_t PADS_BANK_BASE = PERIPHERAL_BASE + (0x400f0000 - 0x40000000);
 
+	constexpr uint64_t GPIO14_CTRL = IO_BANK0_BASE + 0x074;
+	constexpr uint64_t GPIO15_CTRL = IO_BANK0_BASE + 0x07C;
 
-		UART0_DR     = (UART0_BASE + 0x00),
-		UART0_RSRECR = (UART0_BASE + 0x04),
-		UART0_FR     = (UART0_BASE + 0x18),
-		UART0_ILPR   = (UART0_BASE + 0x20),
-		UART0_IBRD   = (UART0_BASE + 0x24),
-		UART0_FBRD   = (UART0_BASE + 0x28),
-		UART0_LCRH   = (UART0_BASE + 0x2C),
-		UART0_CR     = (UART0_BASE + 0x30),
-		UART0_IFLS   = (UART0_BASE + 0x34),
-		UART0_IMSC   = (UART0_BASE + 0x38),
-		UART0_RIS    = (UART0_BASE + 0x3C),
-		UART0_MIS    = (UART0_BASE + 0x40),
-		UART0_ICR    = (UART0_BASE + 0x44),
-		UART0_DMACR  = (UART0_BASE + 0x48),
-		UART0_ITCR   = (UART0_BASE + 0x80),
-		UART0_ITIP   = (UART0_BASE + 0x84),
-		UART0_ITOP   = (UART0_BASE + 0x88),
-		UART0_TDR    = (UART0_BASE + 0x8C),
-	};
+	constexpr uint64_t GPIO14_PAD = PADS_BANK_BASE + 0x3C;
+	constexpr uint64_t GPIO15_PAD = PADS_BANK_BASE + 0x40;
+
+	/**
+	 * RP1 PL011 UART0 base — CPU physical 0x1F00030000.
+	 *
+	 * Still a PL011 (same IP as the Pi 3); all register offsets (DR, FR,
+	 * IBRD, FBRD, LCRH, CR, IMSC, ICR, MIS, etc.) are unchanged from the
+	 * Pi 3 driver — only this base address differs. The uart_pi5 driver
+	 * should use PERIPHERAL_BASE + 0x30000 as its base.
+	 *
+	 * GPIO muxing for UART0 on Pi 5 goes through RP1 GPIO (not BCM GPIO),
+	 * so the Pi 3 GPPUD/GPPUDCLK pull-up sequence does not apply here.
+	 *
+	 * Source: RP1 Peripherals datasheet §11; confirmed via /proc/iomem
+	 * (`1f00030000.serial`) harvest 2026-06-04.
+	 */
+	constexpr uint64_t UART0_BASE  = PERIPHERAL_BASE + 0x30000;
+
+	constexpr uint64_t UART0_DR     = UART0_BASE + 0x00;
+	constexpr uint64_t UART0_RSRECR = UART0_BASE + 0x04;
+	constexpr uint64_t UART0_FR     = UART0_BASE + 0x18;
+	constexpr uint64_t UART0_ILPR   = UART0_BASE + 0x20;
+	constexpr uint64_t UART0_IBRD   = UART0_BASE + 0x24;
+	constexpr uint64_t UART0_FBRD   = UART0_BASE + 0x28;
+	constexpr uint64_t UART0_LCRH   = UART0_BASE + 0x2C;
+	constexpr uint64_t UART0_CR     = UART0_BASE + 0x30;
+	constexpr uint64_t UART0_IFLS   = UART0_BASE + 0x34;
+	constexpr uint64_t UART0_IMSC   = UART0_BASE + 0x38;
+	constexpr uint64_t UART0_RIS    = UART0_BASE + 0x3C;
+	constexpr uint64_t UART0_MIS    = UART0_BASE + 0x40;
+	constexpr uint64_t UART0_ICR    = UART0_BASE + 0x44;
+	constexpr uint64_t UART0_DMACR  = UART0_BASE + 0x48;
+	constexpr uint64_t UART0_ITCR   = UART0_BASE + 0x80;
+	constexpr uint64_t UART0_ITIP   = UART0_BASE + 0x84;
+	constexpr uint64_t UART0_ITOP   = UART0_BASE + 0x88;
+	constexpr uint64_t UART0_TDR    = UART0_BASE + 0x8C;
 #else
 	#error "No board defined. Pass -DBOARD_PI3 or -DBOARD_PI5."
 #endif

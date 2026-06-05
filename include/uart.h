@@ -20,8 +20,10 @@
 
 #pragma once
 
+#include <stdint.h>
+
 /**
- * @brief Write a 32-bit value to a memory-mapped I/O register.
+ * @brief Write a 64-bit value to a memory-mapped I/O register.
  *
  * The `volatile` cast forbids the compiler from coalescing or reordering this
  * store with adjacent memory accesses — required for any device register.
@@ -29,18 +31,18 @@
  * @param reg  Physical address of the MMIO register.
  * @param data 32-bit value to store.
  */
-static inline void mmio_write(uint32_t reg, uint32_t data)
+static inline void mmio_write(uint64_t reg, uint32_t data)
 {
 	*reinterpret_cast<volatile uint32_t*>(reg) = data;
 }
 
 /**
- * @brief Read a 32-bit value from a memory-mapped I/O register.
+ * @brief Read a 64-bit value from a memory-mapped I/O register.
  *
  * @param reg Physical address of the MMIO register.
  * @return The current 32-bit value at @p reg.
  */
-static inline uint32_t mmio_read(uint32_t reg)
+static inline uint32_t mmio_read(uint64_t reg)
 {
 	return *reinterpret_cast<volatile uint32_t*>(reg);
 }
