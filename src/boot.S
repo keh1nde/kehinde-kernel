@@ -2,9 +2,10 @@
 // @brief Kernel entry point — parks secondary cores, drops to EL1, jumps to C++.
 //
 // Part of kehinde-kernel: a bare-metal AArch64 operating system for the
-// Raspberry Pi 3 Model B (Cortex-A53).
+// Raspberry Pi 3 Model B (Cortex-A53) and Raspberry Pi 5 Model B
+// (Cortex A-76).
 //
-// The Raspberry Pi 3 firmware loads `kernel8.img` at physical 0x80000 and
+// The Raspberry Pi firmware loads `kernel8.img` at physical 0x80000 and
 // drops every core into `_start` in EL2. Sequence:
 //   1. Read MPIDR_EL1 — if not core 0, halt in `wfe`.
 //   2. Configure CNTHCTL_EL2 (allow EL1 timer access), CNTVOFF_EL2,
@@ -15,6 +16,7 @@
 //   5. Install `vector_table` into VBAR_EL1.
 //   6. Unmask IRQs (DAIFClr #2 — clears I-bit only; F/A/D remain masked).
 //   7. Branch to `kernel_main`.
+//
 //
 // References:
 //   - Arm Architecture Reference Manual for A-profile, §D1 (Exception model)
@@ -28,11 +30,28 @@
 .extern vector_table
 
 _start:
+    #ifdef BOARD_PI3b
+        b start_pi3b
+    #elif defined(BOARD_PI5)
+        b start_pi5
+    #endif
+
+start_pi3b:
     // Read the CPU ID from MPIDR_EL1; only core 0 should continue.
     mrs     x1, mpidr_el1
     and     x1, x1, #3
     cmp     x1, #0
     bne     halt
+
+    b level_init
+
+start_pi5:
+    // Note that the Pi 3b core deactivation process
+    // is a no-op on the Pi 5, as this process is handled
+    // automatically by it's Power State Coordination Interface (PSCI).
+
+    // When multicore operation has been implemented the other three
+    // cores in the Pi 5 will be activated here.
 
     b level_init
 
