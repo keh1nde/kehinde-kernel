@@ -96,10 +96,17 @@
 	 * All RP1 peripheral addresses are computed as:
 	 *   PERIPHERAL_BASE + (rp1_internal_offset - 0x40000000)
 	 *
-	 * Source: RP1 Peripherals datasheet; confirmed via /proc/iomem harvest
-	 * (2026-06-04) on a Pi 5 Model B Rev 1.1 running Raspberry Pi OS 64-bit.
+	 * Source: Derived from the firmware-logged RP1_UART address:
+	 *  0x1C00030000 − 0x30000 (RP1's UART offset) = 0x1C00000000.
+	 *
+	 * The previous value was retrieved from a /proc/iomem harvest
+	 * (2026-06-04) on a Pi 5 Model B Rev 1.1 running Raspberry Pi OS 64-bit,
+	 * but removed since that value reflects Linux's PCIe BAR remapping, not the
+	 * firmware default.
+	 *
+	 * Development Note: The previous PERIPHERAL_BASE was 0x1F00000000
 	 */
-	constexpr uint64_t PERIPHERAL_BASE = 0x1F00000000;
+	constexpr uint64_t PERIPHERAL_BASE = 0x1C00000000;
 
 	/**
 	 * GIC-400 block base address on BCM2712.
@@ -110,7 +117,7 @@
 	 * the DT-internal address 0x7fff8000 yields 0x107FFF8000.
 	 *
 	 * GICD, GICC, GICH, and GICV are at standard GIC-400 offsets from this
-	 * base (ARM IHI0048). Source: DT `reg` tuples; confirmed 2026-06-04.
+	 * base (ARM IHI0048). Source: Device Tree `reg` tuples; confirmed 2026-06-04.
 	 */
 	constexpr uint64_t LOCAL_PERIPHERAL_BASE = 0x107FFF8000;
 
@@ -124,7 +131,7 @@
 	 * during interrupt controller bring-up.
 	 *
 	 * Offset +0x1000 from LOCAL_PERIPHERAL_BASE per GIC-400 memory map
-	 * (ARM IHI0048). Source: DT reg first tuple (0x7fff9000 + SoC offset).
+	 * (ARM IHI0048). Source: Device Tree reg first tuple (0x7fff9000 + SoC offset).
 	 */
 	constexpr uint64_t GICD_BASE = LOCAL_PERIPHERAL_BASE + 0x1000;
 
@@ -151,7 +158,7 @@
 	 * virtualization). Documented here so the addresses are not re-derived
 	 * if EL2 work starts in a later phase.
 	 *
-	 * Source: DT reg third/fourth tuples; ARM IHI0048 §8.
+	 * Source: DT reg third/fourth tuples; ARM IHI 0069H.b §12.
 	 */
 	constexpr uint64_t GICH_BASE = LOCAL_PERIPHERAL_BASE + 0x4000;
 	constexpr uint64_t GICV_BASE = LOCAL_PERIPHERAL_BASE + 0x6000;
@@ -169,7 +176,7 @@
 	constexpr uint64_t GPIO15_PAD = PADS_BANK_BASE + 0x40;
 
 	/**
-	 * RP1 PL011 UART0 base — CPU physical 0x1F00030000.
+	 * RP1 PL011 UART0 base — CPU physical 0xCF00030000.
 	 *
 	 * Still a PL011 (same IP as the Pi 3); all register offsets (DR, FR,
 	 * IBRD, FBRD, LCRH, CR, IMSC, ICR, MIS, etc.) are unchanged from the
@@ -179,7 +186,7 @@
 	 * GPIO muxing for UART0 on Pi 5 goes through RP1 GPIO (not BCM GPIO),
 	 * so the Pi 3 GPPUD/GPPUDCLK pull-up sequence does not apply here.
 	 *
-	 * Source: RP1 Peripherals datasheet §11; confirmed via /proc/iomem
+	 * Source: RP1 Peripherals datasheet §3.2 and /proc/iomem
 	 * (`1f00030000.serial`) harvest 2026-06-04.
 	 */
 	constexpr uint64_t UART0_BASE  = PERIPHERAL_BASE + 0x30000;
@@ -202,6 +209,103 @@
 	constexpr uint64_t UART0_ITIP   = UART0_BASE + 0x84;
 	constexpr uint64_t UART0_ITOP   = UART0_BASE + 0x88;
 	constexpr uint64_t UART0_TDR    = UART0_BASE + 0x8C;
+
+	/**
+	 * RP1 UART clock control register — CPU physical 0x1C00018054.
+	 *
+	 * Controls the source and enable state of `clk_uart`, the reference clock
+	 * fed to the PL011 baud-rate generator. Firmware does not initialize this
+	 * clock before handoff; `uart_init` must configure it before the UART can
+	 * transmit.
+	 *
+	 * Relevant fields (derived from `linux/drivers/clk/clk-rp1.c`, rpi-6.1.y):
+	 *   - Bits [3:0]  SRC     — glitchless source mux. SRC=1 (AUX_SEL) routes
+	 *                           the auxiliary path selected by AUXSRC.
+	 *   - Bits [9:5]  AUXSRC  — auxiliary source select. AUXSRC=2 = xosc (50 MHz
+	 *                           crystal oscillator).
+	 *   - Bit  11     ENABLE  — gates the clock output. Must be set after source
+	 *                           and divisor are configured.
+	 *
+	 * Write `(2 << 5) | (1 << 11) | (1 << 0)` to select xosc and enable.
+	 */
+	constexpr uint64_t CLK_UART_CTRL    = PERIPHERAL_BASE + (0x40018000 - 0x40000000) + 0x00054;
+
+	/**
+	 * RP1 UART clock integer divisor — CPU physical 0x1C00018058.
+	 *
+	 * Divides the selected clock source before it reaches the PL011. Writing 1
+	 * passes the source through without division, yielding 50 MHz from xosc.
+	 * Must be written before ENABLE is set in CLK_UART_CTRL.
+	 *
+	 * Source: `linux/drivers/clk/clk-rp1.c` (rpi-6.1.y), `rp1_clock_set_rate`.
+	 */
+	constexpr uint64_t CLK_UART_DIV_INT = PERIPHERAL_BASE + (0x40018000 - 0x40000000) + 0x00058;
+
+	/**
+	 * RP1 UART clock source select status — CPU physical 0x1C00018060.
+	 *
+	 * Read-only register reflecting which source is currently active after any
+	 * glitch-free mux transition. No write is needed during normal init.
+	 *
+	 * Source: `linux/drivers/clk/clk-rp1.c` (rpi-6.1.y).
+	 */
+	constexpr uint64_t CLK_UART_SEL     = PERIPHERAL_BASE + (0x40018000 - 0x40000000) + 0x00060;
+
+	/**
+	 * RP1 SYS_RIO base — CPU physical 0x1C000E0000.
+	 *
+	 * SYS_RIO (Synchronous Registered I/O) is RP1's fast parallel GPIO block.
+	 * It exposes a 28-bit wide register interface for bulk GPIO output and
+	 * input operations, bypassing the per-pin FUNCSEL path of IO_BANK0. Each
+	 * register is available at four address aliases that perform different
+	 * operations on write (see atomic alias constants below).
+	 *
+	 * Source: RP1 Peripherals datasheet §3.3 (SYS_RIO).
+	 */
+	constexpr uint64_t SYS_RIO_BASE     = PERIPHERAL_BASE + (0x400e0000 - 0x40000000);
+
+	/**
+	 * RIO_OUT  (+0x00) — output data register. A set bit drives the
+	 *                     corresponding GPIO pin high when OE is also set.
+	 * RIO_OE   (+0x04) — output enable register. Set a bit to configure the
+	 *                     corresponding GPIO as an output.
+	 * RIO_NOSYNC_IN (+0x08) — raw input register, not synchronized to the
+	 *                     system clock. Use only for inputs known to be stable;
+	 *                     metastability risk on asynchronous signals.
+	 * RIO_SYNC_IN   (+0x0C) — synchronized input register. Passes the input
+	 *                     through a flip-flop stage before sampling, eliminating
+	 *                     metastability for asynchronous signals.
+	 */
+	constexpr uint64_t RIO_OUT          = SYS_RIO_BASE + 0x00;
+	constexpr uint64_t RIO_OE           = SYS_RIO_BASE + 0x04;
+	constexpr uint64_t RIO_NOSYNC_IN    = SYS_RIO_BASE + 0x08;
+	constexpr uint64_t RIO_SYNC_IN      = SYS_RIO_BASE + 0x0C;
+
+	/**
+	 * RP1 atomic access aliases for SYS_RIO (and other RP1 APB peripherals).
+	 *
+	 * RP1 maps each APB peripheral block at four consecutive 4 KiB windows.
+	 * A write to the window at offset +0x0000 is a normal read/write. Writes
+	 * to the other windows perform register-level atomic operations without
+	 * requiring a read-modify-write sequence:
+	 *
+	 *   NORMAL_RW   (+0x0000) — standard read/write.
+	 *   ATOMIC_XOR  (+0x1000) — written bits are XORed into the register.
+	 *   ATOMIC_SET  (+0x2000) — written bits are ORed into the register (set).
+	 *   ATOMIC_CLEAR(+0x4000) — written bits are cleared from the register.
+	 *
+	 * Usage: add the alias offset to the register address before writing.
+	 * Example — atomically set bit 14 of RIO_OE:
+	 *   `mmio_write(RIO_OE + ATOMIC_SET, 1 << 14);`
+	 *
+	 * Source: RP1 Peripherals datasheet §2.4 (Atomic Register Access).
+	 */
+	constexpr uint64_t NORMAL_RW        = 0x0000;
+	constexpr uint64_t ATOMIC_XOR       = 0x1000;
+	constexpr uint64_t ATOMIC_SET       = 0x2000;
+	constexpr uint64_t ATOMIC_CLEAR     = 0x4000;
+
+
 #else
 	#error "No board defined. Pass -DBOARD_PI3 or -DBOARD_PI5."
 #endif

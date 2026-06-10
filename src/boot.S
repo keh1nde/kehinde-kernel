@@ -56,6 +56,12 @@ start_pi5:
     b level_init
 
 level_init:
+    // Check if we are already in EL1, if so, skip to el1_entry
+    mrs x0, CurrentEL
+    lsr x0, x0, #2
+    cmp x0, #2
+    bne el1_entry
+
     // Allow EL1 to read and program the physical timer registers.
     mov     x4, #0x3
     msr     CNTHCTL_EL2, x4
@@ -78,6 +84,12 @@ level_init:
     eret
 
 el1_entry:
+    // Disable the MMU to avoid premature address translation.
+    mrs x0, SCTLR_EL1
+    bic x0, x0, #1
+    msr SCTLR_EL1, x0
+    isb
+
     // SP_EL1 grows downward from 0x80000 (where the kernel was loaded).
     ldr     x1, =_start
     mov     sp, x1

@@ -3,7 +3,7 @@
  * @brief PL011 UART driver implementation.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Drives the BCM2835's PL011 UART at 115200 8N1 with FIFOs enabled. All
  * MMIO goes through the inline `mmio_read`/`mmio_write` helpers in
@@ -30,6 +30,10 @@ void uart_init(){
 	// Disable the UART before reconfiguring.
 	mmio_write(UART0_CR, 0x00000000);
 
+	// Set up the clock
+	mmio_write(CLK_UART_DIV_INT, 1);
+	mmio_write(CLK_UART_CTRL, (2 << 5) | (1 << 11) | (1 << 0));
+
 	// Set FUNCSEL field to a4 to mux GPIO14 to UART0_TX and GPIO15 to UART0_RX
 	mmio_write(GPIO14_CTRL, 4);
 	mmio_write(GPIO15_CTRL, 4);
@@ -43,11 +47,11 @@ void uart_init(){
 	// Clear all pending UART interrupts.
 	mmio_write(UART0_ICR, 0x7FF);
 
-	// Baud divisors for 115200 baud assuming a 3 MHz UART clock under QEMU
-	// (IBRD=1, FBRD=40). Real hardware programs different divisors via
-	// firmware; values stable for development under QEMU.
-	mmio_write(UART0_IBRD, 1);
-	mmio_write(UART0_FBRD, 40);
+	// Baud divisors for 115200 baud at 50 MHz (xosc)
+	// BRD = 50,000,000 / (16 * 115,200) = 27.127
+	// IBRD = 27, FBRD = round(0.127 * 64) = 8
+	mmio_write(UART0_IBRD, 27);
+	mmio_write(UART0_FBRD, 8);
 
 	// LCRH: FIFOs enabled (FEN), 8-bit word length (WLEN=3).
 	mmio_write(UART0_LCRH, (1 << 4) | (1 << 5) | (1 << 6));
@@ -78,7 +82,7 @@ void uart_handle_irq() {
 void uart_putc(unsigned char c)
 {
 	// Spin while TXFF (TX FIFO full).
-	while (mmio_read(UART0_FR) & (1 << 5)) { }
+	// while (mmio_read(UART0_FR) & (1 << 5)) { }
 	mmio_write(UART0_DR, c);
 }
 
