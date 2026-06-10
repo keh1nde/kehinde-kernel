@@ -82,7 +82,7 @@ void uart_handle_irq() {
 void uart_putc(unsigned char c)
 {
 	// Spin while TXFF (TX FIFO full).
-	// while (mmio_read(UART0_FR) & (1 << 5)) { }
+	while (mmio_read(UART0_FR) & (1 << 5)) { }
 	mmio_write(UART0_DR, c);
 }
 
