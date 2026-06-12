@@ -3,7 +3,7 @@
  * @brief Interactive UART shell sitting directly on the ramfs API.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Read-parse-dispatch loop: print a prompt, read a line over UART, split
  * on whitespace, look the verb up in a small static table of handlers.

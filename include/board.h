@@ -23,6 +23,10 @@
 	constexpr uint64_t PERIPHERAL_BASE = 0x3F000000; // For Broadcom devices
 	constexpr uint64_t LOCAL_PERIPHERAL_BASE = 0x40000000; // For ARM devices
 
+	/** First physical address claimed by Raspberry Pi MMIO peripherals. The PMM
+	*  manages frames up to but not including this address. */
+	constexpr uint64_t PHYS_MEM_END = 0x3F800000;
+
 	// The following are Timer, IRQ and UART MMIO addresses for the Pi 3b.
 	enum {
 		// Timer Addresses
@@ -120,6 +124,10 @@
 	 * base (ARM IHI0048). Source: Device Tree `reg` tuples; confirmed 2026-06-04.
 	 */
 	constexpr uint64_t LOCAL_PERIPHERAL_BASE = 0x107FFF8000;
+
+	/** First physical address claimed by Raspberry Pi MMIO peripherals. The PMM
+	*  manages frames up to but not including this address. */
+	constexpr uint64_t PHYS_MEM_END = 0x3F800000;
 
 	/**
 	 * GIC-400 Distributor (GICD) — CPU physical 0x107FFF9000.

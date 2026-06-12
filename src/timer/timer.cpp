@@ -3,7 +3,7 @@
  * @brief ARM Generic Timer driver implementation (CNTP, EL0 physical timer).
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Programs the EL0 physical timer (CNTP) to fire roughly every 100 ms
  * (10 Hz). The IRQ handler in `interrupts.cpp` reloads `CNTP_TVAL_EL0`
@@ -54,6 +54,7 @@ void print_time() {
 }
 
 void shell_print_time() {
-	uart_puts("Uptime: ");
+	uart_puts("\rUptime: ");
 	uart_put_uint(get_time());
+	uart_puts("\r\n");
 }

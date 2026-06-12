@@ -3,7 +3,7 @@
  * @brief AArch64 stage-1 MMU — public API and descriptor flag constants.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Configures a TTBR0-only, 4 KiB-granule, 39-bit-VA, three-level (L1→L2→L3)
  * translation regime. MAIR slots: Attr0 = Normal Inner/Outer WB cacheable,
@@ -45,6 +45,10 @@ enum {
  *
  * Requires #pmm_init to have run first (table frames come from the PMM).
  */
+/** Top-level (L1) translation table. Defined in mmu.cpp; assigned by the
+ *  board-specific mmu_init before any map/translate/unmap call. */
+extern uint64_t* l1_table;
+
 void mmu_init();
 
 

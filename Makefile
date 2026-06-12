@@ -15,9 +15,14 @@ OBJCOPY  = aarch64-elf-objcopy
 # -fno-exceptions -fno-rtti: required for bare-metal C++ (no runtime support)
 # -Wall: enable all warnings — your best friend for catching mistakes early
 # BOARD: Defines the target of the kernel.
-COMMON_FLAGS = -mcpu=cortex-a53 -ffreestanding -nostdlib -Wall
 
 BOARD ?= PI3b
+
+ifeq ($(BOARD), PI3b)
+	COMMON_FLAGS = -mcpu=cortex-a53 -ffreestanding -nostdlib -Wall
+else ifeq ($(BOARD), PI5)
+	COMMON_FLAGS = -mcpu=cortex-a76 -ffreestanding -nostdlib -Wall
+endif
 
 ASFLAGS  = $(COMMON_FLAGS) -DBOARD_$(BOARD)
 CXXFLAGS = $(COMMON_FLAGS) -fno-exceptions -fno-rtti -DBOARD_$(BOARD)

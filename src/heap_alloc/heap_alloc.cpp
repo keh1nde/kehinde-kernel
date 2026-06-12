@@ -3,7 +3,7 @@
  * @brief Bump heap allocator with lazy page-backed VA mapping.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * The heap reserves a fixed virtual range and grows on demand: each
  * #kmalloc that advances `bump_ptr` past `heap_end` pulls fresh physical

@@ -2,7 +2,7 @@
 // @brief AArch64 exception vector table + register save/restore stubs.
 //
 // Part of kehinde-kernel: a bare-metal AArch64 operating system for the
-// Raspberry Pi 3 Model B (Cortex-A53).
+// Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
 //
 // The AArch64 vector table is 16 entries laid out at 128-byte intervals,
 // the whole table 2 KiB aligned. Entries are grouped into four bands:

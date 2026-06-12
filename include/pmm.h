@@ -3,7 +3,7 @@
  * @brief Physical Memory Manager — public API and shared constants.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * The PMM is a flat-bitmap frame allocator covering the physical range
  * `[__kernel_end, PHYS_MEM_END)`, in 4 KiB frames. The bitmap itself is
@@ -25,14 +25,12 @@
 
 #include <stdint.h>
 #include <uart.h>
+#include "board.h"
 
 
 /** Frame and page size in bytes (4 KiB). */
 constexpr uint64_t PAGE_SIZE = 4096;
 
-/** First physical address claimed by Raspberry Pi MMIO peripherals. The PMM
- *  manages frames up to but not including this address. */
-constexpr uint64_t PHYS_MEM_END = 0x3F000000;
 
 extern "C" {
 	/** Physical address of the first allocatable frame (one past the bitmap). */

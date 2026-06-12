@@ -3,7 +3,7 @@
  * @brief Physical Memory Manager — flat-bitmap frame allocator.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Bit convention: bit 0 of `bitmap[0]` represents the frame at
  * `phys_mem_start`; `0` = free, `1` = used. The bitmap itself is placed at

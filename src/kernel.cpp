@@ -3,7 +3,7 @@
  * @brief Kernel entry point — initializes subsystems and hands off to the shell.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Called from `src/boot.S` after the boot stub has dropped to EL1, set up
  * the stack, zeroed BSS, installed the vector table, and unmasked IRQs.
@@ -53,14 +53,17 @@ extern "C" void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	(void) r1;
 	(void) atags;
 
+	uart_init();
+	uart_puts("UART successfully initialized.\r\n");
+
 	mmu_init();
-	uart_puts("Page Frame Allocator and MMU initialized.\n");
+	uart_puts("Page Frame Allocator and MMU initialized.\r\n");
 
 	kheap_init();
-	uart_puts("Heap allocator initialized.\n");
+	uart_puts("Heap allocator initialized.\r\n");
 
 	fs_init();
-	uart_puts("fs_init done.\n");
+	uart_puts("fs_init done.\r\n");
 
 	timer_init();
 	interrupt_init();

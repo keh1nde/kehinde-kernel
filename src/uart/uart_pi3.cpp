@@ -3,7 +3,7 @@
  * @brief PL011 UART driver implementation.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Drives the BCM2835's PL011 UART at 115200 8N1 with FIFOs enabled. All
  * MMIO goes through the inline `mmio_read`/`mmio_write` helpers in

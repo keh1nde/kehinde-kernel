@@ -3,7 +3,7 @@
  * @brief In-memory filesystem (ramfs) — types, constants, and public API.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Layout: a single global linked list of `inode` records (`inode_list_head`)
  * keyed by monotonically-increasing `ino`. Tree shape is implicit — a

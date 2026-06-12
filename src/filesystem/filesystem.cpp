@@ -3,7 +3,7 @@
  * @brief In-memory filesystem (ramfs) implementation.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * See `<filesystem.h>` for the type and API contracts; this file documents
  * implementation details, invariants, and known pitfalls. The filesystem

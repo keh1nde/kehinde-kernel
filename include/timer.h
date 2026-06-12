@@ -3,7 +3,7 @@
  * @brief ARM Generic Timer (CNTP, EL0 physical timer) — public API.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * Drives the per-core physical timer at a fixed 10 Hz tick. Tick count is
  * incremented from inside the IRQ handler (see

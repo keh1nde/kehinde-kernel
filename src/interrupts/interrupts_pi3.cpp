@@ -3,7 +3,7 @@
  * @brief Synchronous-exception decoder and IRQ controller bring-up.
  *
  * Part of kehinde-kernel: a bare-metal AArch64 operating system for the
- * Raspberry Pi 3 Model B (Cortex-A53).
+ * Raspberry Pi 3 Model B (Cortex-A53) and Pi 5 (Cortex-A76).
  *
  * The vector table in `vector_table.S` calls into the two `extern "C"`
  * entry points defined here. Synchronous exceptions are treated as fatal
