@@ -57,7 +57,7 @@ void uart_init()
 	// UART RX IRQ (bit 4) is intentionally enabled but the IRQ controller
 	// side (IRQ_EN2 bit 25) is currently disabled to avoid an IRQ storm —
 	// see CLAUDE.md / known issues.
-	mmio_write(UART0_IMSC, (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
+	mmio_write(UART0_IMSC, (1 << 4) | (1 << 6) |
 						(1 << 7) | (1 << 8) | (1 << 9) | (1 << 10));
 
 	// Re-enable the UART with TX and RX.
@@ -65,15 +65,7 @@ void uart_init()
 }
 
 void uart_handle_irq() {
-		if (
-			(mmio_read(UART0_DR) & 8) |
-			(mmio_read(UART0_DR) & 9) |
-			(mmio_read(UART0_DR) & 10) |
-			(mmio_read(UART0_DR) & 11)
-		) return;
-
-		uart_putc(mmio_read(UART0_DR) & 0xFF);
-		mmio_write(UART0_ICR, 0x7FF);
+	mmio_write(UART0_ICR, 0x7FF);
 }
 
 void uart_putc(unsigned char c)
